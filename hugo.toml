@@ -1,0 +1,4 @@
+baseURL = 'https://brianliu-sysu.github.io/'
+languageCode = "zh-cn"
+title = "Brian's Blog"
+theme = "PaperMod"
