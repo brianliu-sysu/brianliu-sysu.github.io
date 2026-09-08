@@ -1,0 +1,41 @@
+{{- with site.Params.homeInfoParams }}
+{{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
+{{- $posts = where $posts "Params.hiddenInHomeList" "!=" true }}
+<article class="tn-welcome">
+  <div class="tn-tab-strip" aria-hidden="true">
+    <span class="tn-tab active">welcome.md</span>
+    <a class="tn-tab" href="{{ "posts/" | relLangURL }}">posts.md</a>
+    <a class="tn-tab" href="{{ "archives/" | relLangURL }}">archives.log</a>
+    <a class="tn-tab" href="{{ "search/" | relLangURL }}">search.json</a>
+  </div>
+  <div class="tn-editor">
+    {{- $ln := 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="h-mark"># </span><span class="h-text">{{ .Title }}</span></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="text">{{ trim .Content "\n" | plainify }}</span></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="comment">&lt;!-- ~/blog.brianliu.top · {{ len $posts }} posts in workspace · utf-8 · lf --&gt;</span></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="h-mark">## </span><span class="h-text">Recent files</span></span></div>
+    {{- range first 3 $posts }}
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="punct">- [</span><a class="link" href="{{ .RelPermalink }}">{{ .Title }}</a><span class="punct">](~{{ .RelPermalink }})</span></span></div>
+    {{- end }}
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
+    {{- $ln = add $ln 1 }}
+    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="punct">**[</span><a class="link" href="{{ "posts/" | relLangURL }}">open the full workspace</a><span class="punct">](~/posts/)**</span></span></div>
+  </div>
+  {{- if site.Params.socialIcons }}
+  <footer>
+    {{- partial "social_icons.html" (dict "align" site.Params.homeInfoParams.AlignSocialIconsTo) }}
+  </footer>
+  {{- end }}
+</article>
+{{- end -}}

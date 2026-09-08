@@ -1,4 +1,62 @@
 baseURL = 'https://blog.brianliu.top/'
-languageCode = "zh-cn"
 title = "Brian's Blog"
 theme = "PaperMod"
+languageCode = "zh-cn"
+defaultContentLanguage = "zh"
+
+[pagination]
+pagerSize = 10
+
+[outputs]
+home = ["HTML", "RSS", "JSON"]
+
+[markup.highlight]
+noClasses = false
+lineNos = false
+tabWidth = 2
+
+[params]
+env = "production"
+defaultTheme = "dark"
+disableThemeToggle = false
+ShowReadingTime = true
+ShowShareButtons = false
+ShowPostNavLinks = true
+ShowBreadCrumbs = true
+ShowCodeCopyButtons = true
+ShowRssButtonInSectionTermList = true
+ShowAllPagesInArchive = true
+mainSections = ["posts"]
+DateFormat = "2006-01-02"
+description = "后端 · 云原生 · 分布式系统"
+
+[params.label]
+text = "brian"
+
+[params.homeInfoParams]
+Title = "Brian Liu"
+Content = "后端 · 云原生 · 分布式系统"
+
+[params.assets]
+theme_color = "#1a1b26"
+msapplication_TileColor = "#1a1b26"
+
+[[params.socialIcons]]
+name = "github"
+url = "https://github.com/brianliu-sysu"
+title = "GitHub"
+
+[[menu.main]]
+name = "Posts"
+url = "/posts/"
+weight = 10
+
+[[menu.main]]
+name = "Archives"
+url = "/archives/"
+weight = 20
+
+[[menu.main]]
+name = "Search"
+url = "/search/"
+weight = 30

@@ -1,7 +1,11 @@
 ---
-title: "Observability"
+title: "可观测性"
+description: "Logging / Metrics / Tracing，以及一个最小 Tracing 实现"
 date: 2026-08-27
 draft: false
+
+categories: ["技术教程"]
+tags: []
 ---
 
 # 可观测性

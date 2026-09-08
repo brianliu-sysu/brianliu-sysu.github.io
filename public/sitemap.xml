@@ -1,18 +1,1 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-  xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  <url>
-    <loc>http://localhost:1313/</loc>
-    <lastmod>2026-08-27T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/posts/hello-world/</loc>
-    <lastmod>2026-08-27T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/posts/</loc>
-    <lastmod>2026-08-27T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>http://localhost:1313/categories/</loc>
-  </url><url>
-    <loc>http://localhost:1313/tags/</loc>
-  </url>
-</urlset>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml"><url><loc>https://blog.brianliu.top/</loc><lastmod>2026-09-08T17:48:50+08:00</lastmod></url><url><loc>https://blog.brianliu.top/categories/</loc><lastmod>2026-09-08T17:48:50+08:00</lastmod></url><url><loc>https://blog.brianliu.top/posts/etcd-read-write-process/</loc><lastmod>2026-09-08T17:48:50+08:00</lastmod></url><url><loc>https://blog.brianliu.top/posts/</loc><lastmod>2026-09-08T17:48:50+08:00</lastmod></url><url><loc>https://blog.brianliu.top/categories/%E6%8A%80%E6%9C%AF%E6%95%99%E7%A8%8B/</loc><lastmod>2026-09-08T17:48:50+08:00</lastmod></url><url><loc>https://blog.brianliu.top/posts/high-performance/</loc><lastmod>2026-09-07T00:00:00+00:00</lastmod></url><url><loc>https://blog.brianliu.top/posts/observability/</loc><lastmod>2026-08-27T00:00:00+00:00</lastmod></url><url><loc>https://blog.brianliu.top/archives/</loc></url><url><loc>https://blog.brianliu.top/search/</loc></url><url><loc>https://blog.brianliu.top/tags/</loc></url></urlset>
