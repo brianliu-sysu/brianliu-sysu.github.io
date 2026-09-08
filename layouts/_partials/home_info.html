@@ -1,36 +1,25 @@
+{{- $page := . }}
 {{- with site.Params.homeInfoParams }}
 {{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
 {{- $posts = where $posts "Params.hiddenInHomeList" "!=" true }}
 <article class="tn-welcome">
   <div class="tn-tab-strip" aria-hidden="true">
-    <span class="tn-tab active">welcome.md</span>
+    <span class="tn-tab active">welcome.md <span class="tn-tab-mode">Preview</span></span>
     <a class="tn-tab" href="{{ "posts/" | relLangURL }}">posts.md</a>
     <a class="tn-tab" href="{{ "archives/" | relLangURL }}">archives.log</a>
     <a class="tn-tab" href="{{ "search/" | relLangURL }}">search.json</a>
   </div>
-  <div class="tn-editor">
-    {{- $ln := 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="h-mark"># </span><span class="h-text">{{ .Title }}</span></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="text">{{ trim .Content "\n" | plainify }}</span></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="comment">&lt;!-- ~/blog.brianliu.top · {{ len $posts }} posts in workspace · utf-8 · lf --&gt;</span></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="h-mark">## </span><span class="h-text">Recent files</span></span></div>
-    {{- range first 3 $posts }}
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="punct">- [</span><a class="link" href="{{ .RelPermalink }}">{{ .Title }}</a><span class="punct">](~{{ .RelPermalink }})</span></span></div>
-    {{- end }}
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"></span></div>
-    {{- $ln = add $ln 1 }}
-    <div class="tn-line"><span class="tn-ln">{{ $ln }}</span><span class="tn-src"><span class="punct">**[</span><a class="link" href="{{ "posts/" | relLangURL }}">open the full workspace</a><span class="punct">](~/posts/)**</span></span></div>
+  <div class="tn-preview">
+    <h1>{{ .Title }}</h1>
+    <p class="tn-preview-lead">{{ trim .Content "\n" | $page.RenderString }}</p>
+    <p class="tn-preview-meta">{{ len $posts }} posts in workspace · blog.brianliu.top</p>
+    <h2>Recent files</h2>
+    <ul class="tn-preview-list">
+      {{- range first 3 $posts }}
+      <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+      {{- end }}
+    </ul>
+    <p class="tn-preview-more"><a href="{{ "posts/" | relLangURL }}">打开全部文章 →</a></p>
   </div>
   {{- if site.Params.socialIcons }}
   <footer>
