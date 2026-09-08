@@ -1,17 +1,368 @@
-<!doctype html><html lang=zh dir=auto data-theme=dark><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>Etcd 读写流程 | Brian's Blog</title><meta name=keywords content><meta name=description content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply"><meta name=author content><link rel=canonical href=https://blog.brianliu.top/posts/etcd-read-write-process/><link crossorigin=anonymous href=/assets/css/stylesheet.7fa6f4ad15e6c1fd63318c101793b4f62b0a22cc0fc6e28caffe2c41d496502f.css integrity="sha256-f6b0rRXmwf1jMYwQF5O09isKIswPxuKMr/4sQdSWUC8=" rel="preload stylesheet" as=style><link rel=icon href=https://blog.brianliu.top/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://blog.brianliu.top/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://blog.brianliu.top/favicon-32x32.png><link rel=apple-touch-icon href=https://blog.brianliu.top/apple-touch-icon.png><link rel=mask-icon href=https://blog.brianliu.top/safari-pinned-tab.svg><meta name=theme-color content="#1a1b26"><meta name=msapplication-TileColor content="#1a1b26"><link rel=alternate hreflang=zh href=https://blog.brianliu.top/posts/etcd-read-write-process/><noscript><style>#theme-toggle,.top-link{display:none}</style></noscript><script>localStorage.getItem("pref-theme")==="light"&&(document.querySelector("html").dataset.theme="light")</script><link rel=preconnect href=https://fonts.bunny.net><link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel=stylesheet><meta property="og:url" content="https://blog.brianliu.top/posts/etcd-read-write-process/"><meta property="og:site_name" content="Brian's Blog"><meta property="og:title" content="Etcd 读写流程"><meta property="og:description" content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply"><meta property="og:locale" content="zh_cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-09-08T17:48:50+08:00"><meta property="article:modified_time" content="2026-09-08T17:48:50+08:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="Etcd 读写流程"><meta name=twitter:description content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://blog.brianliu.top/posts/"},{"@type":"ListItem","position":2,"name":"Etcd 读写流程","item":"https://blog.brianliu.top/posts/etcd-read-write-process/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"Etcd 读写流程","name":"Etcd 读写流程","description":"etcd 读写路径：KVServer、MVCC、Raft 提案与 apply","keywords":[],"articleBody":"etcd 读写流程 etcd的应用非常广泛，从服务发现到分布式锁，而且随着k8s成为容器编排领域的绝对霸主，etcd也成为云原生的存储基石。\n读流程 client 发起一个key的读请求 服务收到请求后，先进入KVserver模块，因为etcd提供了丰富的监控指标，KVserver会根据访问的服务名称的方法，将请求发往不同的处理器 之后进入MVCC模块，这个模块包含两个模块：treeIndex和 boltdb 先在treeIndex中根据key，找到要访问的版本号，如果没有找到直接报错返回 etcd有两种读模式：串性读和线性读 如果是串性读，直接进行下一步 如果是线性读，先从leader获取commitedIndex，如果commitedIndex \u003c version 进入下一步，如果否等到满足前面的条件再进行下一步 根据版本号在buffer中查找，找到数据直接返回，没有找打再从boltdb中查找 写流程 client 发起一个key的写请求 服务收到请求后，先进入quota模块，判断当前数据库是否还有空间，没有空间之间返回 在进入KVserver模块，先进行一些校验 commited Index - applied Index \u003e 5000, 如果大于5000，说明之前有大量数据还在处理中，报错 token 是否合法 包大小是否合法 KVserver发起提案并提交给raft模块，leader 应用本地log并写入WAL，同时把请求发送给follower，如果收到超过半数的follower的答复，进入apply流程 为了幂等，etcd保存了一个constitient Index, 用来表示事务是否已经应用 先将数据写入treeIndex， treeIndex保存 key 和对应的version信息（包含创建 version，当前version，修改次数和历史version列表） 获取到要写入的version后，将version作为key，value包含要写入的key，value信息 ","wordCount":"44","inLanguage":"zh","datePublished":"2026-09-08T17:48:50+08:00","dateModified":"2026-09-08T17:48:50+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.brianliu.top/posts/etcd-read-write-process/"},"publisher":{"@type":"Organization","name":"Brian's Blog","logo":{"@type":"ImageObject","url":"https://blog.brianliu.top/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=header-nav><div class=logo><a href=https://blog.brianliu.top/ accesskey=h title="brian (Alt + H)">brian</a><div class=logo-switches><button id=theme-toggle class=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
-<svg class="moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-<svg class="sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu class=menu><li><a href=https://blog.brianliu.top/posts/ title=Posts><span>Posts</span></a></li><li><a href=https://blog.brianliu.top/archives/ title=Archives><span>Archives</span></a></li><li><a href=https://blog.brianliu.top/search/ title="Search (Alt + /)" accesskey=/><span>Search</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><nav class=breadcrumbs role=navigation aria-label=Breadcrumb><a href=/>主页</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
-<a href=/posts/>Posts</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg></nav><h1 class="post-title entry-hint-parent">Etcd 读写流程</h1><div class=post-description>etcd 读写路径：KVServer、MVCC、Raft 提案与 apply</div><div class=post-meta><span title='2026-09-08 17:48:50 +0800 CST'>2026-09-08</span>&nbsp;·&nbsp;<span>1 分钟</span></div></header><div class="post-content md-content"><h1 id=etcd-读写流程>etcd 读写流程<a hidden class=anchor aria-hidden=true href=#etcd-读写流程>#</a></h1><p>etcd的应用非常广泛，从服务发现到分布式锁，而且随着k8s成为容器编排领域的绝对霸主，etcd也成为云原生的存储基石。</p><h2 id=读流程>读流程<a hidden class=anchor aria-hidden=true href=#读流程>#</a></h2><ul><li>client 发起一个key的读请求</li><li>服务收到请求后，先进入KVserver模块，因为etcd提供了丰富的监控指标，KVserver会根据访问的服务名称的方法，将请求发往不同的处理器</li><li>之后进入MVCC模块，这个模块包含两个模块：treeIndex和 boltdb</li><li>先在treeIndex中根据key，找到要访问的版本号，如果没有找到直接报错返回</li><li>etcd有两种读模式：串性读和线性读<ul><li>如果是串性读，直接进行下一步</li><li>如果是线性读，先从leader获取commitedIndex，如果commitedIndex &lt; version 进入下一步，如果否等到满足前面的条件再进行下一步</li></ul></li><li>根据版本号在buffer中查找，找到数据直接返回，没有找打再从boltdb中查找</li></ul><h2 id=写流程>写流程<a hidden class=anchor aria-hidden=true href=#写流程>#</a></h2><ul><li>client 发起一个key的写请求</li><li>服务收到请求后，先进入quota模块，判断当前数据库是否还有空间，没有空间之间返回</li><li>在进入KVserver模块，先进行一些校验<ul><li>commited Index - applied Index > 5000, 如果大于5000，说明之前有大量数据还在处理中，报错</li><li>token 是否合法</li><li>包大小是否合法</li></ul></li><li>KVserver发起提案并提交给raft模块，leader 应用本地log并写入WAL，同时把请求发送给follower，如果收到超过半数的follower的答复，进入apply流程</li><li>为了幂等，etcd保存了一个constitient Index, 用来表示事务是否已经应用</li><li>先将数据写入treeIndex， treeIndex保存 key 和对应的version信息（包含创建 version，当前version，修改次数和历史version列表）</li><li>获取到要写入的version后，将version作为key，value包含要写入的key，value信息</li></ul></div><footer class=post-footer><ul class=post-tags></ul><nav class=paginav><a class=next href=https://blog.brianliu.top/posts/high-performance/><span class=title>下一页 »</span>
-<span>高性能服务</span></a></nav></footer></article></main><footer class=footer><div class=tn-footer-line><span>&copy; 2026 <a href=https://blog.brianliu.top/>Brian's Blog</a></span>
-<span>Powered by
-<a href="https://gohugo.io/?utm_source=papermod" rel=noopener target=_blank>Hugo</a> &
-<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></div></footer><div class=tn-statusbar aria-hidden=true><div class=tn-sb-group><span class="tn-sb-item tn-branch">git:(main)</span>
-<span class="tn-sb-item tn-ok">✓ 0 errors</span>
-<span class="tn-sb-item tn-warn">! 0 warnings</span></div><div class=tn-sb-group><span class=tn-sb-item>Ln 1, Col 1</span>
-<span class=tn-sb-item>UTF-8</span>
-<span class=tn-sb-item>LF</span>
-<span class="tn-sb-item tn-lang">Markdown</span>
-<span class="tn-sb-item tn-ok">✓ Prettier</span></div></div><a href=#top id=top-link class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey=g><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
-</a><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var toplink=document.getElementById("top-link");window.onscroll=function(){const e=window.innerHeight;document.body.scrollTop>e||document.documentElement.scrollTop>e?toplink.classList.remove("hidden"):toplink.classList.add("hidden")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="复制";function s(){t.innerHTML="已复制！",setTimeout(()=>{t.innerHTML="复制"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Etcd 读写流程 | Brian&#39;s Blog</title>
+<meta name="keywords" content="etcd">
+<meta name="description" content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/etcd-read-write-process/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.7fa6f4ad15e6c1fd63318c101793b4f62b0a22cc0fc6e28caffe2c41d496502f.css" integrity="sha256-f6b0rRXmwf1jMYwQF5O09isKIswPxuKMr/4sQdSWUC8=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#1a1b26">
+<meta name="msapplication-TileColor" content="#1a1b26">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/etcd-read-write-process/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
+<meta property="og:url" content="http://localhost:1313/posts/etcd-read-write-process/">
+  <meta property="og:site_name" content="Brian&#39;s Blog">
+  <meta property="og:title" content="Etcd 读写流程">
+  <meta property="og:description" content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-09-08T17:48:50+08:00">
+    <meta property="article:modified_time" content="2026-09-08T17:48:50+08:00">
+    <meta property="article:tag" content="Etcd">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Etcd 读写流程">
+  <meta name="twitter:description" content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "Posts",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Etcd 读写流程",
+      "item": "http://localhost:1313/posts/etcd-read-write-process/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Etcd 读写流程",
+  "name": "Etcd 读写流程",
+  "description": "etcd 读写路径：KVServer、MVCC、Raft 提案与 apply",
+  "keywords": [
+    "etcd"
+  ],
+  "articleBody": "etcd 读写流程 etcd的应用非常广泛，从服务发现到分布式锁，而且随着k8s成为容器编排领域的绝对霸主，etcd也成为云原生的存储基石。\n读流程 client 发起一个key的读请求 服务收到请求后，先进入KVserver模块，因为etcd提供了丰富的监控指标，KVserver会根据访问的服务名称的方法，将请求发往不同的处理器 之后进入MVCC模块，这个模块包含两个模块：treeIndex和 boltdb 先在treeIndex中根据key，找到要访问的版本号，如果没有找到直接报错返回 etcd有两种读模式：串性读和线性读 如果是串性读，直接进行下一步 如果是线性读，先从leader获取commitedIndex，如果commitedIndex \u003c version 进入下一步，如果否等到满足前面的条件再进行下一步 根据版本号在buffer中查找，找到数据直接返回，没有找打再从boltdb中查找 写流程 client 发起一个key的写请求 服务收到请求后，先进入quota模块，判断当前数据库是否还有空间，没有空间之间返回 在进入KVserver模块，先进行一些校验 commited Index - applied Index \u003e 5000, 如果大于5000，说明之前有大量数据还在处理中，报错 token 是否合法 包大小是否合法 KVserver发起提案并提交给raft模块，leader 应用本地log并写入WAL，同时把请求发送给follower，如果收到超过半数的follower的答复，进入apply流程 为了幂等，etcd保存了一个constitient Index, 用来表示事务是否已经应用 先将数据写入treeIndex， treeIndex保存 key 和对应的version信息（包含创建 version，当前version，修改次数和历史version列表） 获取到要写入的version后，将version作为key，value包含要写入的key，value信息 ",
+  "wordCount" : "44",
+  "inLanguage": "zh",
+  "datePublished": "2026-09-08T17:48:50+08:00",
+  "dateModified": "2026-09-08T17:48:50+08:00",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/etcd-read-write-process/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Brian's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="http://localhost:1313/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="Archives">
+                    <span>Archives</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/">主页</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/">Posts</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      Etcd 读写流程
+    </h1>
+    <div class="post-description">
+      etcd 读写路径：KVServer、MVCC、Raft 提案与 apply
+    </div>
+    <div class="post-meta">
+
+<span title='2026-09-08 17:48:50 +0800 CST'>2026-09-08</span>&nbsp;·&nbsp;<span>1 分钟</span>
+
+</div>
+  </header> 
+  <div class="post-content md-content"><h1 id="etcd-读写流程">etcd 读写流程<a hidden class="anchor" aria-hidden="true" href="#etcd-读写流程">#</a></h1>
+<p>etcd的应用非常广泛，从服务发现到分布式锁，而且随着k8s成为容器编排领域的绝对霸主，etcd也成为云原生的存储基石。</p>
+<h2 id="读流程">读流程<a hidden class="anchor" aria-hidden="true" href="#读流程">#</a></h2>
+<ul>
+<li>client 发起一个key的读请求</li>
+<li>服务收到请求后，先进入KVserver模块，因为etcd提供了丰富的监控指标，KVserver会根据访问的服务名称的方法，将请求发往不同的处理器</li>
+<li>之后进入MVCC模块，这个模块包含两个模块：treeIndex和 boltdb</li>
+<li>先在treeIndex中根据key，找到要访问的版本号，如果没有找到直接报错返回</li>
+<li>etcd有两种读模式：串性读和线性读
+<ul>
+<li>如果是串性读，直接进行下一步</li>
+<li>如果是线性读，先从leader获取commitedIndex，如果commitedIndex &lt; version 进入下一步，如果否等到满足前面的条件再进行下一步</li>
+</ul>
+</li>
+<li>根据版本号在buffer中查找，找到数据直接返回，没有找打再从boltdb中查找</li>
+</ul>
+<h2 id="写流程">写流程<a hidden class="anchor" aria-hidden="true" href="#写流程">#</a></h2>
+<ul>
+<li>client 发起一个key的写请求</li>
+<li>服务收到请求后，先进入quota模块，判断当前数据库是否还有空间，没有空间之间返回</li>
+<li>在进入KVserver模块，先进行一些校验
+<ul>
+<li>commited Index - applied Index &gt; 5000, 如果大于5000，说明之前有大量数据还在处理中，报错</li>
+<li>token 是否合法</li>
+<li>包大小是否合法</li>
+</ul>
+</li>
+<li>KVserver发起提案并提交给raft模块，leader 应用本地log并写入WAL，同时把请求发送给follower，如果收到超过半数的follower的答复，进入apply流程</li>
+<li>为了幂等，etcd保存了一个constitient Index, 用来表示事务是否已经应用</li>
+<li>先将数据写入treeIndex， treeIndex保存 key 和对应的version信息（包含创建 version，当前version，修改次数和历史version列表）</li>
+<li>获取到要写入的version后，将version作为key，value包含要写入的key，value信息</li>
+</ul>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/etcd/">Etcd</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="http://localhost:1313/posts/high-performance/">
+    <span class="title">下一页 »</span>
+    <span>高性能服务</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <div class="tn-footer-line">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+    </div>
+</footer>
+<div class="tn-statusbar" aria-hidden="true">
+  <div class="tn-sb-group">
+    <span class="tn-sb-item tn-branch">git:(main)</span>
+    <span class="tn-sb-item tn-ok">✓ 0 errors</span>
+    <span class="tn-sb-item tn-warn">! 0 warnings</span>
+  </div>
+  <div class="tn-sb-group">
+    <span class="tn-sb-item">Ln 1, Col 1</span>
+    <span class="tn-sb-item">UTF-8</span>
+    <span class="tn-sb-item">LF</span>
+    <span class="tn-sb-item tn-lang">Markdown</span>
+    <span class="tn-sb-item tn-ok">✓ Prettier</span>
+  </div>
+</div>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+            
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

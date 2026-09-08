@@ -5,7 +5,7 @@ date: 2026-08-27
 draft: false
 
 categories: ["技术教程"]
-tags: []
+tags: ["arch"]
 ---
 
 # 可观测性
