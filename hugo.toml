@@ -38,8 +38,8 @@ Title = "Brian Liu"
 Content = "后端 · 云原生 · 分布式系统"
 
 [params.assets]
-theme_color = "#1a1b26"
-msapplication_TileColor = "#1a1b26"
+theme_color = "#14110f"
+msapplication_TileColor = "#14110f"
 
 [[params.socialIcons]]
 name = "github"

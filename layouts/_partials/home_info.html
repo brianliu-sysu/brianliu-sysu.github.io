@@ -2,27 +2,55 @@
 {{- with site.Params.homeInfoParams }}
 {{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
 {{- $posts = where $posts "Params.hiddenInHomeList" "!=" true }}
-<article class="tn-welcome">
-  <div class="tn-tab-strip" aria-hidden="true">
-    <span class="tn-tab active">welcome.md <span class="tn-tab-mode">Preview</span></span>
-    <a class="tn-tab" href="{{ "posts/" | relLangURL }}">posts.md</a>
-    <a class="tn-tab" href="{{ "archives/" | relLangURL }}">archives.log</a>
-    <a class="tn-tab" href="{{ "search/" | relLangURL }}">search.json</a>
+<article class="cc-session">
+  <div class="cc-window-bar" aria-hidden="true">
+    <span class="cc-dots"><i></i><i></i><i></i></span>
+    <span class="cc-window-title">brian@blog — ~/blog.brianliu.top · agent session</span>
   </div>
-  <div class="tn-preview">
-    <h1>{{ .Title }}</h1>
-    <p class="tn-preview-lead">{{ trim .Content "\n" | $page.RenderString }}</p>
-    <p class="tn-preview-meta">{{ len $posts }} posts in workspace · blog.brianliu.top</p>
-    <h2>Recent files</h2>
-    <ul class="tn-preview-list">
-      {{- range first 3 $posts }}
-      <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
-      {{- end }}
-    </ul>
-    <p class="tn-preview-more"><a href="{{ "posts/" | relLangURL }}">打开全部文章 →</a></p>
+  <div class="cc-session-body">
+    <fieldset class="cc-welcome">
+      <legend>{{ .Title }} <span class="cc-dim">v1.0.0</span></legend>
+      <div class="cc-welcome-grid">
+        <div class="cc-welcome-left">
+          <div class="cc-bold">Welcome back, reader!</div>
+          <svg class="cc-pixel-logo" viewBox="0 0 11 6" shape-rendering="crispEdges" aria-hidden="true">
+            <rect x="0" y="0" width="4" height="1"/><rect x="0" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/>
+            <rect x="0" y="2" width="4" height="1"/>
+            <rect x="0" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/>
+            <rect x="0" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/>
+            <rect x="0" y="5" width="4" height="1"/>
+            <rect x="6" y="0" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/>
+            <rect x="6" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/>
+            <rect x="6" y="5" width="5" height="1"/>
+          </svg>
+          <div class="cc-dim cc-bio">{{ trim .Content "\n" | $page.RenderString }}</div>
+          <div class="cc-dim">~/blog.brianliu.top</div>
+        </div>
+        <div class="cc-divider" aria-hidden="true"></div>
+        <div class="cc-welcome-right">
+          <div class="cc-accent cc-bold">Tips for getting started</div>
+          <div>选一篇文章，或打开 <a href="{{ "posts/" | relLangURL }}">~/posts</a> 看全部</div>
+          <div class="cc-hr" aria-hidden="true"></div>
+          <div class="cc-accent cc-bold">What's new</div>
+          {{- range first 3 $posts }}
+          <div class="cc-truncate">· <a href="{{ .RelPermalink }}">{{ .Title }}</a></div>
+          {{- end }}
+          <div class="cc-dim cc-italic"><a href="{{ "archives/" | relLangURL }}">/archives</a> for the full changelog</div>
+        </div>
+      </div>
+    </fieldset>
+    <div class="cc-composer" aria-hidden="true">
+      <span class="cc-prompt">❯</span>
+      <span class="cc-composer-hint">read the latest posts</span>
+      <span class="cc-caret"></span>
+    </div>
+    <div class="cc-statusline">
+      <span class="cc-auto">»» auto mode on</span><span class="cc-dim"> · esc to interrupt · {{ len $posts }} posts in context</span>
+    </div>
+    <div class="cc-thinkingline" aria-hidden="true"><span class="cc-spark">✻</span> <span class="cc-thinking">Thinking…</span></div>
   </div>
   {{- if site.Params.socialIcons }}
-  <footer>
+  <footer class="cc-session-footer">
     {{- partial "social_icons.html" (dict "align" site.Params.homeInfoParams.AlignSocialIconsTo) }}
   </footer>
   {{- end }}

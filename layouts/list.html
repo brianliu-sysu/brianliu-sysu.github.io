@@ -51,8 +51,10 @@
 {{- partial "home_info.html" . }}
 {{- end }}
 
-<div class="tn-tree-header" aria-hidden="true">▾ ~/{{ if .IsHome }}posts{{ else }}{{ .Title | lower }}{{ end }} <span style="text-transform: none;">— {{ $paginator.TotalNumberOfElements }} items</span></div>
-<div class="tn-tree">
+{{- if eq $paginator.PageNumber 1 }}
+<div class="cc-log-line" aria-hidden="true"><span class="cc-prompt">❯</span>ls -lt ~/{{ if .IsHome }}posts{{ else }}{{ .Title | lower }}{{ end }} <span class="cc-dim"># {{ $paginator.TotalNumberOfElements }} files, sorted by mtime</span></div>
+{{- end }}
+
 {{- $term := .Data.Term }}
 {{- range $index, $page := $paginator.Pages }}
 
@@ -64,21 +66,25 @@
 <article class="{{ $class }}">
   {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false }}
   {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) }}
-  <a class="tn-file-link" href="{{ .Permalink }}" aria-label="{{ .Title | plainify }}">
-    <div class="tn-file-row">
-      <span class="tn-connector" aria-hidden="true">{{ if eq $index (sub (len $paginator.Pages) 1) }}└─{{ else }}├─{{ end }}</span>
-      <span class="tn-file-icon" aria-hidden="true"></span>
-      <h2 class="tn-file-name">{{ .Title }}{{ if .Draft }} <span class="entry-isdraft">[draft]</span>{{ end }}<span class="tn-ext">.md</span></h2>
-      <span class="tn-file-date">{{ .Date.Format "2006-01-02" }}</span>
-    </div>
-    {{- if (ne (.Param "hideSummary") true) }}
+  <header class="entry-header">
+    <h2>
+      <span class="cc-bullet" aria-hidden="true">●</span><span class="cc-verb">Read</span><span class="cc-paren">(</span><span class="cc-arg">{{ .Title }}{{ if .Draft }}&nbsp;[Draft]{{ end }}</span><span class="cc-paren">)</span>
+    </h2>
+  </header>
+  {{- if (ne (.Param "hideSummary") true) }}
+  <section class="entry-content">
     {{- $desc := .Description | default (.Summary | plainify | htmlUnescape) }}
-    <div class="tn-file-desc">{{ $desc | truncate 90 }}</div>
-    {{- end }}
-  </a>
+    <p>{{ $desc | truncate 90 }}</p>
+  </section>
+  {{- end }}
+  {{- if not (.Param "hideMeta") }}
+  <footer class="entry-footer">
+    {{- partial "post_meta.html" . -}}
+  </footer>
+  {{- end }}
+  <a class="entry-link" aria-label="post link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
 </article>
 {{- end }}
-</div>
 
 {{- if gt $paginator.TotalPages 1 }}
 <footer class="page-footer">
@@ -86,17 +92,11 @@
     {{- if $paginator.HasPrev }}
     <a class="prev" href="{{ $paginator.Prev.URL | absURL }}">
       «&nbsp;{{ i18n "prev_page" }}&nbsp;
-      {{- if (.Param "ShowPageNums") }}
-      {{- sub $paginator.PageNumber 1 }}/{{ $paginator.TotalPages }}
-      {{- end }}
     </a>
     {{- end }}
     {{- if $paginator.HasNext }}
     <a class="next" href="{{ $paginator.Next.URL | absURL }}">
-      {{- i18n "next_page" }}&nbsp;
-      {{- if (.Param "ShowPageNums") }}
-      {{- add 1 $paginator.PageNumber }}/{{ $paginator.TotalPages }}
-      {{- end }}&nbsp;»
+      {{- i18n "next_page" }}&nbsp;»
     </a>
     {{- end }}
   </nav>
