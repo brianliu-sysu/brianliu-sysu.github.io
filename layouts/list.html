@@ -38,52 +38,42 @@
 </div>
 {{- end }}
 
-{{- $pages := union .RegularPages .Sections }}
+{{- $useTree := or .IsHome (eq .Kind "section") }}
 
-{{- if .IsHome }}
-{{- $pages = where site.RegularPages "Type" "in" site.Params.mainSections }}
-{{- $pages = where $pages "Params.hiddenInHomeList" "!=" "true"  }}
-{{- end }}
-
-{{- $paginator := .Paginate $pages }}
-
-{{- if and .IsHome site.Params.homeInfoParams (eq $paginator.PageNumber 1) }}
+{{- if and .IsHome site.Params.homeInfoParams }}
 {{- partial "home_info.html" . }}
 {{- end }}
 
-{{- if eq $paginator.PageNumber 1 }}
-<div class="cc-log-line" aria-hidden="true"><span class="cc-prompt">❯</span>ls -lt ~/{{ if .IsHome }}posts{{ else }}{{ .Title | lower }}{{ end }} <span class="cc-dim"># {{ $paginator.TotalNumberOfElements }} files, sorted by mtime</span></div>
+{{- if $useTree }}
+{{- $root := . }}
+{{- if .IsHome }}
+  {{- $root = site.GetPage "posts" }}
 {{- end }}
+{{- $total := 0 }}
+{{- with $root }}
+  {{- $total = len .RegularPagesRecursive }}
+{{- end }}
+<div class="cc-log-line" aria-hidden="true"><span class="cc-prompt">❯</span>tree ~/{{ if .IsHome }}posts{{ else }}{{ .Title | lower }}{{ end }} <span class="cc-dim"># {{ $total }} files</span></div>
+<div class="cc-tree">
+  {{- with $root }}
+    {{- partial "post_tree_nodes.html" . }}
+  {{- end }}
+</div>
+
+{{- else }}
+
+{{- $pages := union .RegularPages .Sections }}
+{{- $paginator := .Paginate $pages }}
+
+<div class="cc-log-line" aria-hidden="true"><span class="cc-prompt">❯</span>ls -lt ~/{{ .Title | lower }} <span class="cc-dim"># {{ $paginator.TotalNumberOfElements }} files, sorted by mtime</span></div>
 
 {{- $term := .Data.Term }}
-{{- range $index, $page := $paginator.Pages }}
-
+{{- range $paginator.Pages }}
 {{- $class := "post-entry" }}
 {{- if $term }}
 {{- $class = "post-entry tag-entry" }}
 {{- end }}
-
-<article class="{{ $class }}">
-  {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false }}
-  {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) }}
-  <header class="entry-header">
-    <h2>
-      <span class="cc-bullet" aria-hidden="true">●</span><span class="cc-verb">Read</span><span class="cc-paren">(</span><span class="cc-arg">{{ .Title }}{{ if .Draft }}&nbsp;[Draft]{{ end }}</span><span class="cc-paren">)</span>
-    </h2>
-  </header>
-  {{- if (ne (.Param "hideSummary") true) }}
-  <section class="entry-content">
-    {{- $desc := .Description | default (.Summary | plainify | htmlUnescape) }}
-    <p>{{ $desc | truncate 90 }}</p>
-  </section>
-  {{- end }}
-  {{- if not (.Param "hideMeta") }}
-  <footer class="entry-footer">
-    {{- partial "post_meta.html" . -}}
-  </footer>
-  {{- end }}
-  <a class="entry-link" aria-label="post link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
-</article>
+{{- partial "post_tree_file.html" . }}
 {{- end }}
 
 {{- if gt $paginator.TotalPages 1 }}
@@ -102,6 +92,8 @@
   </nav>
 </footer>
 {{- end }}
+
+{{- end }}{{/* end tree vs flat */}}
 
 {{- end }}{{/* end profileMode */}}
 

@@ -420,6 +420,75 @@ fieldset.cc-welcome legend .cc-dim {
   user-select: none;
 }
 
+/* ---------- directory tree ---------- */
+
+.cc-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cc-folder {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--entry);
+}
+
+.cc-folder[open] {
+  border-color: var(--accent-dim);
+}
+
+.cc-folder summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 16px;
+  user-select: none;
+}
+
+.cc-folder summary::-webkit-details-marker {
+  display: none;
+}
+
+.cc-folder-mark::before {
+  content: "▸";
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cc-folder[open] > summary .cc-folder-mark::before {
+  content: "▾";
+}
+
+.cc-folder-name {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cc-folder-name:hover {
+  color: var(--primary);
+}
+
+.cc-folder-body {
+  padding: 0 10px 10px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-folder-body .post-entry,
+.cc-tree > .post-entry {
+  margin-bottom: 0;
+}
+
+.cc-folder-body .cc-folder {
+  background: var(--code-bg);
+}
+
 /* ---------- post entries: tool calls ---------- */
 
 .post-entry {
