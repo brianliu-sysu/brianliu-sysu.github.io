@@ -1,58 +1,27 @@
-{{- $page := . }}
 {{- with site.Params.homeInfoParams }}
-{{- $posts := where site.RegularPages "Type" "in" site.Params.mainSections }}
-{{- $posts = where $posts "Params.hiddenInHomeList" "!=" true }}
-<article class="cc-session">
-  <div class="cc-window-bar" aria-hidden="true">
-    <span class="cc-dots"><i></i><i></i><i></i></span>
-    <span class="cc-window-title">brian@blog — ~/blog.brianliu.top · agent session</span>
+{{- $posts := where site.RegularPages "Section" "in" site.Params.mainSections }}
+<article class="tn-welcome">
+  <div class="tn-tab-strip" aria-hidden="true">
+    <span class="tn-tab active">welcome.md</span>
+    <a class="tn-tab" href="{{ "/posts/" | relURL }}">posts/</a>
+    <a class="tn-tab" href="{{ "/archives/" | relURL }}">archives.log</a>
   </div>
-  <div class="cc-session-body">
-    <fieldset class="cc-welcome">
-      <legend>{{ .Title }} <span class="cc-dim">v1.0.0</span></legend>
-      <div class="cc-welcome-grid">
-        <div class="cc-welcome-left">
-          <div class="cc-bold">Welcome back, reader!</div>
-          <svg class="cc-pixel-logo" viewBox="0 0 11 6" shape-rendering="crispEdges" aria-hidden="true">
-            <rect x="0" y="0" width="4" height="1"/><rect x="0" y="1" width="1" height="1"/><rect x="4" y="1" width="1" height="1"/>
-            <rect x="0" y="2" width="4" height="1"/>
-            <rect x="0" y="3" width="1" height="1"/><rect x="4" y="3" width="1" height="1"/>
-            <rect x="0" y="4" width="1" height="1"/><rect x="4" y="4" width="1" height="1"/>
-            <rect x="0" y="5" width="4" height="1"/>
-            <rect x="6" y="0" width="1" height="1"/><rect x="6" y="1" width="1" height="1"/><rect x="6" y="2" width="1" height="1"/>
-            <rect x="6" y="3" width="1" height="1"/><rect x="6" y="4" width="1" height="1"/>
-            <rect x="6" y="5" width="5" height="1"/>
-          </svg>
-          <div class="cc-dim cc-bio">{{ trim .Content "\n" | $page.RenderString }}</div>
-          <div class="cc-dim">~/blog.brianliu.top</div>
-        </div>
-        <div class="cc-divider" aria-hidden="true"></div>
-        <div class="cc-welcome-right">
-          <div class="cc-accent cc-bold">Tips for getting started</div>
-          <div>选一篇文章，或打开 <a href="{{ "posts/" | relLangURL }}">~/posts</a> 看全部</div>
-          <div class="cc-hr" aria-hidden="true"></div>
-          <div class="cc-accent cc-bold">What's new</div>
-          {{- range first 3 $posts }}
-          <div class="cc-truncate">· <a href="{{ .RelPermalink }}">{{ .Title }}</a></div>
-          {{- end }}
-          <div class="cc-dim cc-italic"><a href="{{ "archives/" | relLangURL }}">/archives</a> for the full changelog</div>
-        </div>
-      </div>
-    </fieldset>
-    <div class="cc-composer" aria-hidden="true">
-      <span class="cc-prompt">❯</span>
-      <span class="cc-composer-hint">read the latest posts</span>
-      <span class="cc-caret"></span>
-    </div>
-    <div class="cc-statusline">
-      <span class="cc-auto">»» auto mode on</span><span class="cc-dim"> · esc to interrupt · {{ len $posts }} posts in context</span>
-    </div>
-    <div class="cc-thinkingline" aria-hidden="true"><span class="cc-spark">✻</span> <span class="cc-thinking">Thinking…</span></div>
+  <div class="tn-editor">
+    <div class="tn-line"><span class="tn-ln">1</span><span class="tn-src"><span class="h-mark"># </span><span class="h-text">{{ .Title }}</span></span></div>
+    <div class="tn-line"><span class="tn-ln">2</span><span class="tn-src"></span></div>
+    <div class="tn-line"><span class="tn-ln">3</span><span class="tn-src"><span class="text">{{ trim .Content "\n" | plainify }}</span></span></div>
+    <div class="tn-line"><span class="tn-ln">4</span><span class="tn-src"></span></div>
+    <div class="tn-line"><span class="tn-ln">5</span><span class="tn-src"><span class="comment">&lt;!-- ~/blog.brianliu.top · {{ len $posts }} posts in workspace · utf-8 · lf --&gt;</span></span></div>
+    <div class="tn-line"><span class="tn-ln">6</span><span class="tn-src"></span></div>
+    <div class="tn-line"><span class="tn-ln">7</span><span class="tn-src"><span class="h-mark">## </span><span class="h-text">Recent files</span></span></div>
+    {{- range $index, $page := first 3 $posts }}
+    <div class="tn-line"><span class="tn-ln">{{ add 8 $index }}</span><span class="tn-src"><span class="punct">- [</span><a class="link" href="{{ .RelPermalink }}">{{ $page.Title }}</a><span class="punct">](~{{ $page.RelPermalink }})</span></span></div>
+    {{- end }}
+    <div class="tn-line"><span class="tn-ln">11</span><span class="tn-src"></span></div>
+    <div class="tn-line"><span class="tn-ln">12</span><span class="tn-src"><span class="punct">**[</span><a class="link" href="{{ "/posts/" | relURL }}">open the full workspace</a><span class="punct">](~/posts/)**</span></span></div>
   </div>
-  {{- if site.Params.socialIcons }}
-  <footer class="cc-session-footer">
-    {{- partial "social_icons.html" (dict "align" site.Params.homeInfoParams.AlignSocialIconsTo) }}
+  <footer>
+    {{- partial "social_icons.html" (dict "align" "") -}}
   </footer>
-  {{- end }}
 </article>
 {{- end -}}

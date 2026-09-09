@@ -1,10 +1,7 @@
 {{- define "main" }}
 
 <article class="post-single">
-  <div class="cc-titlebar" aria-hidden="true">
-    <span class="cc-dots"><i></i><i></i><i></i></span>
-    <span class="cc-titlebar-path">~/blog{{ .RelPermalink }}</span>
-  </div>
+  <div class="tn-buffer-bar" aria-hidden="true">~/blog{{ .RelPermalink }}</div>
   <header class="post-header">
     {{ partial "breadcrumbs.html" . }}
     <h1 class="post-title entry-hint-parent">
@@ -68,4 +65,4 @@
   {{- end }}
 </article>
 
-{{- end }}{{/* end main */}}
+{{- end }}

@@ -1,21 +1,15 @@
+{{- $page := .page -}}
+{{- $last := .last -}}
 <article class="post-entry">
-  {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false }}
-  {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) }}
-  <header class="entry-header">
-    <h2>
-      <span class="cc-bullet" aria-hidden="true">●</span><span class="cc-verb">Read</span><span class="cc-paren">(</span><span class="cc-arg">{{ .Title }}{{ if .Draft }}&nbsp;[Draft]{{ end }}</span><span class="cc-paren">)</span>
-    </h2>
-  </header>
-  {{- if (ne (.Param "hideSummary") true) }}
-  <section class="entry-content">
-    {{- $desc := .Description | default (.Summary | plainify | htmlUnescape) }}
-    <p>{{ $desc | truncate 90 }}</p>
-  </section>
-  {{- end }}
-  {{- if not (.Param "hideMeta") }}
-  <footer class="entry-footer">
-    {{- partial "post_meta.html" . -}}
-  </footer>
-  {{- end }}
-  <a class="entry-link" aria-label="post link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
+  <a class="tn-file-link" href="{{ $page.RelPermalink }}" aria-label="{{ $page.Title | plainify }}">
+    <div class="tn-file-row">
+      <span class="tn-connector" aria-hidden="true">{{ if $last }}└─{{ else }}├─{{ end }}</span>
+      <span class="tn-file-icon" aria-hidden="true"></span>
+      <h2 class="tn-file-name">{{ $page.Title }}{{ if $page.Draft }} <span class="entry-isdraft">[draft]</span>{{ end }}<span class="tn-ext">.md</span></h2>
+      <span class="tn-file-date">{{ $page.Date.Format "2006-01-02" }}</span>
+    </div>
+    {{- with $page.Description }}
+    <div class="tn-file-desc">{{ . | plainify | htmlUnescape }}</div>
+    {{- end }}
+  </a>
 </article>

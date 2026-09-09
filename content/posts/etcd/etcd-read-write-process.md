@@ -1,12 +1,17 @@
-+++
-date = '2026-09-08T17:48:50+08:00'
-draft = false
-title = 'Etcd 读写流程'
-description = 'etcd 读写路径：KVServer、MVCC、Raft 提案与 apply'
-categories = ["技术教程"]
-tags = ["etcd"]
-aliases = ["/posts/etcd-read-write-process/"]
-+++
+---
+title: Etcd 读写流程
+date: 2026-09-08T17:48:50+08:00
+draft: false
+description: etcd 读写路径：KVServer、MVCC、Raft 提案与 apply
+categories:
+  - 技术教程
+tags:
+  - etcd
+aliases:
+  - /posts/etcd-read-write-process/
+---
+
+<!--more-->
 
 # etcd 读写流程
 

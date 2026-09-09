@@ -2,7 +2,7 @@
 
 {{- if (and site.Params.profileMode.enabled .IsHome) }}
 {{- partial "index_profile.html" . }}
-{{- else }} {{/* if not profileMode */}}
+{{- else }}
 
 {{- if not .IsHome | and .Title }}
 <header class="page-header">
@@ -38,63 +38,62 @@
 </div>
 {{- end }}
 
-{{- $useTree := or .IsHome (eq .Kind "section") }}
+{{- $pages := union .RegularPages .Sections }}
+{{- if .IsHome }}
+{{- $pages = where site.RegularPages "Type" "in" site.Params.mainSections }}
+{{- $pages = where $pages "Params.hiddenInHomeList" "!=" "true" }}
+{{- end }}
+{{- $pages = where $pages "Params.hidden" "!=" true }}
 
-{{- if and .IsHome site.Params.homeInfoParams }}
+{{- $paginator := .Paginate $pages }}
+
+{{- if and .IsHome site.Params.homeInfoParams (eq $paginator.PageNumber 1) }}
 {{- partial "home_info.html" . }}
 {{- end }}
 
-{{- if $useTree }}
-{{- $root := . }}
-{{- if .IsHome }}
-  {{- $root = site.GetPage "posts" }}
-{{- end }}
-{{- $total := 0 }}
-{{- with $root }}
-  {{- $total = len .RegularPagesRecursive }}
-{{- end }}
-<div class="cc-log-line" aria-hidden="true"><span class="cc-prompt">❯</span>tree ~/{{ if .IsHome }}posts{{ else }}{{ .Title | lower }}{{ end }} <span class="cc-dim"># {{ $total }} files</span></div>
-<div class="cc-tree">
-  {{- with $root }}
-    {{- partial "post_tree_nodes.html" . }}
+{{- $useFolderTree := and (not .IsHome) (eq .Kind "section") (gt (len .Sections) 0) }}
+<div class="tn-tree-header" aria-hidden="true">▾ ~/{{ if .IsHome }}posts{{ else }}{{ .Title | lower }}{{ end }} <span style="text-transform: none;">— {{ if $useFolderTree }}{{ .RegularPagesRecursive.Len }}{{ else }}{{ $paginator.TotalNumberOfElements }}{{ end }} items</span></div>
+<div class="tn-tree">
+{{- if $useFolderTree }}
+  {{- partial "post_tree_nodes.html" . -}}
+{{- else }}
+  {{- $term := .Data.Term }}
+  {{- range $index, $page := $paginator.Pages }}
+    {{- $class := "post-entry" }}
+    {{- if $term }}
+      {{- $class = "post-entry tag-entry" }}
+    {{- end }}
+    <article class="{{ $class }}">
+      {{- $isHidden := (.Param "cover.hiddenInList") | default (.Param "cover.hidden") | default false }}
+      {{- partial "cover.html" (dict "cxt" . "IsSingle" false "isHidden" $isHidden) }}
+      <a class="tn-file-link" href="{{ .RelPermalink }}" aria-label="{{ .Title | plainify }}">
+        <div class="tn-file-row">
+          <span class="tn-connector" aria-hidden="true">{{ if eq $index (sub (len $paginator.Pages) 1) }}└─{{ else }}├─{{ end }}</span>
+          <span class="tn-file-icon" aria-hidden="true"></span>
+          <h2 class="tn-file-name">{{ .Title }}{{ if .Draft }} <span class="entry-isdraft">[draft]</span>{{ end }}{{ if .IsSection }}/{{ else }}<span class="tn-ext">.md</span>{{ end }}</h2>
+          <span class="tn-file-date">{{ .Date.Format "2006-01-02" }}</span>
+        </div>
+        {{- if (ne (.Param "hideSummary") true) }}
+        <div class="tn-file-desc">{{ if .Description }}{{ .Description | plainify | htmlUnescape }}{{ else }}{{ .Summary | plainify | htmlUnescape }}{{ if .Truncated }}...{{ end }}{{ end }}</div>
+        {{- end }}
+      </a>
+    </article>
   {{- end }}
+{{- end }}
 </div>
 
-{{- else }}
-
-{{- $pages := union .RegularPages .Sections }}
-{{- $paginator := .Paginate $pages }}
-
-<div class="cc-log-line" aria-hidden="true"><span class="cc-prompt">❯</span>ls -lt ~/{{ .Title | lower }} <span class="cc-dim"># {{ $paginator.TotalNumberOfElements }} files, sorted by mtime</span></div>
-
-{{- $term := .Data.Term }}
-{{- range $paginator.Pages }}
-{{- $class := "post-entry" }}
-{{- if $term }}
-{{- $class = "post-entry tag-entry" }}
-{{- end }}
-{{- partial "post_tree_file.html" . }}
-{{- end }}
-
-{{- if gt $paginator.TotalPages 1 }}
+{{- if and (not $useFolderTree) (gt $paginator.TotalPages 1) }}
 <footer class="page-footer">
   <nav class="pagination">
     {{- if $paginator.HasPrev }}
-    <a class="prev" href="{{ $paginator.Prev.URL | absURL }}">
-      «&nbsp;{{ i18n "prev_page" }}&nbsp;
-    </a>
+    <a class="prev" href="{{ $paginator.Prev.URL | absURL }}">« {{ i18n "prev_page" }}</a>
     {{- end }}
     {{- if $paginator.HasNext }}
-    <a class="next" href="{{ $paginator.Next.URL | absURL }}">
-      {{- i18n "next_page" }}&nbsp;»
-    </a>
+    <a class="next" href="{{ $paginator.Next.URL | absURL }}">{{ i18n "next_page" }} »</a>
     {{- end }}
   </nav>
 </footer>
 {{- end }}
 
-{{- end }}{{/* end tree vs flat */}}
-
-{{- end }}{{/* end profileMode */}}
-
-{{- end }}{{- /* end main */ -}}
+{{- end }}
+{{- end }}

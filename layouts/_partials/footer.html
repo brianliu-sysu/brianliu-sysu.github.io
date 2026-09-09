@@ -1,13 +1,6 @@
 {{- if not (.Param "hideFooter") }}
-<footer class="footer cc-footer">
-  <div class="cc-footer-composer" aria-hidden="true">
-    <span class="cc-prompt">❯</span>
-    <span class="cc-composer-hint">session complete — esc to close</span>
-    <span class="cc-caret"></span>
-  </div>
-  <div class="cc-footer-status">
-    <span class="cc-auto">»» auto mode on</span>
-    <span class="cc-dim">·</span>
+<footer class="footer">
+    <div class="tn-footer-line">
     {{- if not site.Params.footer.hideCopyright }}
         {{- if site.Copyright }}
         <span>{{ site.Copyright | markdownify }}</span>
@@ -15,18 +8,27 @@
         <span>&copy; {{ now.Year }} <a href="{{ "" | absLangURL }}">{{ site.Title }}</a></span>
         {{- end }}
     {{- end }}
-    {{- with site.Params.footer.text }}
-        <span class="cc-dim">·</span>
-        {{ . | markdownify }}
-    {{- end }}
-    <span class="cc-dim">·</span>
-    <span class="cc-dim">
-      powered by
-      <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
-      <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
     </span>
-  </div>
+    </div>
 </footer>
+<div class="tn-statusbar" aria-hidden="true">
+  <div class="tn-sb-group">
+    <span class="tn-sb-item tn-branch">git:(main)</span>
+    <span class="tn-sb-item tn-ok">✓ 0 errors</span>
+    <span class="tn-sb-item tn-warn">! 0 warnings</span>
+  </div>
+  <div class="tn-sb-group">
+    <span class="tn-sb-item">Ln 1, Col 1</span>
+    <span class="tn-sb-item">UTF-8</span>
+    <span class="tn-sb-item">LF</span>
+    <span class="tn-sb-item tn-lang">Markdown</span>
+    <span class="tn-sb-item tn-ok">✓ Prettier</span>
+  </div>
+</div>
 {{- end }}
 
 {{- if (not site.Params.disableScrollToTop) }}
@@ -48,7 +50,6 @@
         if (scrollPosition) {
             menu.scrollLeft = parseInt(scrollPosition, 10);
         }
-
         menu.onscroll = function () {
             localStorage.setItem("menu-scroll-position", menu.scrollLeft);
         }
@@ -72,7 +73,6 @@
             }
         });
     });
-
 </script>
 
 {{- if (not site.Params.disableScrollToTop) }}
@@ -86,7 +86,6 @@
             toplink.classList.add("hidden");
         }
     };
-
 </script>
 {{- end }}
 
@@ -102,7 +101,6 @@
             localStorage.setItem("pref-theme", 'dark');
         }
     })
-
 </script>
 {{- end }}
 
@@ -144,7 +142,6 @@
         if (container.classList.contains("highlight")) {
             container.appendChild(copybutton);
         } else if (container.parentNode.firstChild == container) {
-            // td containing LineNos
         } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
             codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
         } else {

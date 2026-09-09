@@ -1,12 +1,15 @@
 ---
-title: "可观测性"
-description: "Logging / Metrics / Tracing，以及一个最小 Tracing 实现"
+title: 可观测性
 date: 2026-08-27
 draft: false
-
-categories: ["技术教程"]
-tags: ["arch"]
+description: Logging / Metrics / Tracing，以及一个最小 Tracing 实现
+categories:
+  - 技术教程
+tags:
+  - arch
 ---
+
+<!--more-->
 
 # 可观测性
 

@@ -1,22 +1,24 @@
-{{- $root := . }}
-{{- $sections := $root.Sections.ByTitle }}
-{{- $files := $root.RegularPages.ByDate.Reverse }}
-{{- $files = where $files "Params.hiddenInHomeList" "!=" true }}
-
-{{- range $sections }}
-{{- $count := len .RegularPagesRecursive }}
-<details class="cc-folder" open>
-  <summary>
-    <span class="cc-folder-mark" aria-hidden="true"></span>
-    <a class="cc-folder-name" href="{{ .RelPermalink }}">{{ .Title | default .File.ContentBaseName }}/</a>
-    <span class="cc-dim">{{ $count }} {{ if eq $count 1 }}file{{ else }}files{{ end }}</span>
-  </summary>
-  <div class="cc-folder-body">
-    {{- partial "post_tree_nodes.html" . }}
-  </div>
-</details>
-{{- end }}
-
-{{- range $files }}
-  {{- partial "post_tree_file.html" . }}
-{{- end }}
+{{- $nodes := union .RegularPages .Sections }}
+{{- $nodes = sort $nodes "Title" }}
+{{- $lastIndex := sub (len $nodes) 1 }}
+{{- range $index, $node := $nodes }}
+  {{- $last := eq $index $lastIndex }}
+  {{- if $node.IsSection }}
+    <div class="tn-dir">
+      <a class="tn-file-link" href="{{ $node.RelPermalink }}">
+        <div class="tn-file-row">
+          <span class="tn-connector" aria-hidden="true">{{ if $last }}└─{{ else }}├─{{ end }}</span>
+          <span class="tn-dir-name">▾ {{ $node.Title }}/</span>
+          {{- with $node.Description }}
+          <span class="tn-file-date">{{ . | plainify }}</span>
+          {{- end }}
+        </div>
+      </a>
+      <div class="tn-dir-children">
+        {{- partial "post_tree_nodes.html" $node -}}
+      </div>
+    </div>
+  {{- else }}
+    {{- partial "post_tree_file.html" (dict "page" $node "last" $last) -}}
+  {{- end }}
+{{- end -}}

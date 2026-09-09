@@ -1,8 +1,13 @@
-baseURL = 'https://blog.brianliu.top/'
+baseURL = "https://blog.brianliu.top/"
 title = "Brian's Blog"
 theme = "PaperMod"
 languageCode = "zh-cn"
 defaultContentLanguage = "zh"
+hasCJKLanguage = true
+timeZone = "Asia/Shanghai"
+enableRobotsTXT = true
+enableGitInfo = true
+enableEmoji = true
 
 [pagination]
 pagerSize = 10
@@ -38,8 +43,8 @@ Title = "Brian Liu"
 Content = "后端 · 云原生 · 分布式系统"
 
 [params.assets]
-theme_color = "#14110f"
-msapplication_TileColor = "#14110f"
+theme_color = "#1a1b26"
+msapplication_TileColor = "#1a1b26"
 
 [[params.socialIcons]]
 name = "github"
