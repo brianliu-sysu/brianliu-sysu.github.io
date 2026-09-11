@@ -33,14 +33,14 @@ ShowRssButtonInSectionTermList = true
 ShowAllPagesInArchive = true
 mainSections = ["posts"]
 DateFormat = "2006-01-02"
-description = "后端 · 云原生 · 分布式系统"
+description = "后端 · 云原生 · 分布式系统 · web3"
 
 [params.label]
 text = "brian"
 
 [params.homeInfoParams]
 Title = "Brian Liu"
-Content = "后端 · 云原生 · 分布式系统"
+Content = "后端 · 云原生 · 分布式系统 · web3"
 
 [params.assets]
 theme_color = "#1a1b26"

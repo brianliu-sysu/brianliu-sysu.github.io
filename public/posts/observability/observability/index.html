@@ -1,144 +1,485 @@
-<!doctype html><html lang=zh dir=auto data-theme=dark><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>可观测性 | Brian's Blog</title><meta name=keywords content="arch"><meta name=description content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现"><meta name=author content><link rel=canonical href=https://blog.brianliu.top/posts/observability/observability/><link crossorigin=anonymous href=/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as=style><link rel=icon href=https://blog.brianliu.top/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://blog.brianliu.top/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://blog.brianliu.top/favicon-32x32.png><link rel=apple-touch-icon href=https://blog.brianliu.top/apple-touch-icon.png><link rel=mask-icon href=https://blog.brianliu.top/safari-pinned-tab.svg><meta name=theme-color content="#1a1b26"><meta name=msapplication-TileColor content="#1a1b26"><link rel=alternate hreflang=zh href=https://blog.brianliu.top/posts/observability/observability/><noscript><style>#theme-toggle,.top-link{display:none}</style></noscript><script>localStorage.getItem("pref-theme")==="light"&&(document.querySelector("html").dataset.theme="light")</script><link rel=preconnect href=https://fonts.bunny.net><link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel=stylesheet><meta property="og:url" content="https://blog.brianliu.top/posts/observability/observability/"><meta property="og:site_name" content="Brian's Blog"><meta property="og:title" content="可观测性"><meta property="og:description" content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现"><meta property="og:locale" content="zh_cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-08-27T00:00:00+08:00"><meta property="article:modified_time" content="2026-09-09T09:09:46+08:00"><meta property="article:tag" content="Arch"><meta name=twitter:card content="summary"><meta name=twitter:title content="可观测性"><meta name=twitter:description content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"文章","item":"https://blog.brianliu.top/posts/"},{"@type":"ListItem","position":2,"name":"可观测性","item":"https://blog.brianliu.top/posts/observability/"},{"@type":"ListItem","position":3,"name":"可观测性","item":"https://blog.brianliu.top/posts/observability/observability/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"可观测性","name":"可观测性","description":"Logging / Metrics / Tracing，以及一个最小 Tracing 实现","keywords":["arch"],"articleBody":"可观测性 可观测性是衡量软件部署到生产环境后能否被有效运维，以及能否快速发现问题的一个重要指标。\n可观测性主要包含三大支柱：\nLogging：记录软件运行过程中重要事件的离散数据。 Metrics：定时采集的时间序列数据，用于反映系统状态和变化趋势。 Tracing：追踪一次请求所经过的完整流程。 Tracing 的简单实现 trace.go // trace.go package trace import ( \"context\" \"crypto/rand\" \"encoding/hex\" \"fmt\" \"time\" ) type TraceID [16]byte type SpanID [8]byte type Span struct { TraceID TraceID SpanID SpanID ParentSpanID SpanID Name string StartTime time.Time EndTime time.Time } type spanKey struct{} func newTraceID() TraceID { var id TraceID _, _ = rand.Read(id[:]) return id } func newSpanID() SpanID { var id SpanID _, _ = rand.Read(id[:]) return id } func (id TraceID) String() string { return hex.EncodeToString(id[:]) } func (id SpanID) String() string { return hex.EncodeToString(id[:]) } func spanFromContext(ctx context.Context) (*Span, bool) { span, ok := ctx.Value(spanKey{}).(*Span) return span, ok } func Start(ctx context.Context, name string) (context.Context, *Span) { var traceID TraceID var spanID SpanID if span, ok := spanFromContext(ctx); ok { traceID = span.TraceID spanID = span.SpanID } else { traceID = newTraceID() } span := \u0026Span{ TraceID: traceID, SpanID: newSpanID(), ParentSpanID: spanID, Name: name, StartTime: time.Now(), } ctx = context.WithValue(ctx, spanKey{}, span) return ctx, span } func (s *Span) End() { s.EndTime = time.Now() fmt.Printf( \"trace_id=%s span_id=%s parent_span_id=%s name=%q duration=%s\\n\", s.TraceID.String(), s.SpanID.String(), s.ParentSpanID.String(), s.Name, s.EndTime.Sub(s.StartTime), ) } main.go // main.go package main import ( \"context\" \"time\" \"your-path/trace\" ) func main() { ctx := context.Background() ctx, span := trace.Start(ctx, \"main\") defer span.End() queryDB(ctx) } func queryDB(ctx context.Context) { ctx, span := trace.Start(ctx, \"queryDB\") defer span.End() time.Sleep(100 * time.Millisecond) callRedis(ctx) } func callRedis(ctx context.Context) { _, span := trace.Start(ctx, \"redis.GET\") defer span.End() time.Sleep(50 * time.Millisecond) } 输出示例 trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=\"redis.GET\" duration=50.382959ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=\"queryDB\" duration=150.616125ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=\"main\" duration=150.621167ms 生产环境中的 Tracing 上面只是一个简单的本地实现。生产环境中的 Tracing 通常还应包含：\nConnector（连接器）：用于连接远程收集器。 Exporter（导出器）：定义导出协议（如 OTLP、gRPC 等），以及采用单条发送还是批量发送。 Sampler（采样器）：定义采样频率。 ","wordCount":"532","inLanguage":"zh","datePublished":"2026-08-27T00:00:00+08:00","dateModified":"2026-09-09T09:09:46+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.brianliu.top/posts/observability/observability/"},"publisher":{"@type":"Organization","name":"Brian's Blog","logo":{"@type":"ImageObject","url":"https://blog.brianliu.top/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=header-nav><div class=logo><a href=https://blog.brianliu.top/ accesskey=h title="brian (Alt + H)">brian</a><div class=logo-switches><button id=theme-toggle class=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
-<svg class="moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-<svg class="sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu class=menu><li><a href=https://blog.brianliu.top/posts/ title=Posts><span>Posts</span></a></li><li><a href=https://blog.brianliu.top/archives/ title=Archives><span>Archives</span></a></li><li><a href=https://blog.brianliu.top/search/ title="Search (Alt + /)" accesskey=/><span>Search</span></a></li></ul></nav></header><main class=main><article class=post-single><div class=tn-buffer-bar aria-hidden=true>~/blog/posts/observability/observability/</div><header class=post-header><nav class=breadcrumbs role=navigation aria-label=Breadcrumb><a href=/>主页</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
-<a href=/posts/>文章</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
-<a href=/posts/observability/>可观测性</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg></nav><h1 class="post-title entry-hint-parent">可观测性</h1><div class=post-description>Logging / Metrics / Tracing，以及一个最小 Tracing 实现</div><div class=post-meta><span title='2026-08-27 00:00:00 +0800 CST'>2026-08-27</span>&nbsp;·&nbsp;<span>2 分钟</span></div></header><div class="post-content md-content"><h1 id=可观测性>可观测性<a hidden class=anchor aria-hidden=true href=#可观测性>#</a></h1><p>可观测性是衡量软件部署到生产环境后能否被有效运维，以及能否快速发现问题的一个重要指标。</p><p>可观测性主要包含三大支柱：</p><ul><li><strong>Logging</strong>：记录软件运行过程中重要事件的离散数据。</li><li><strong>Metrics</strong>：定时采集的时间序列数据，用于反映系统状态和变化趋势。</li><li><strong>Tracing</strong>：追踪一次请求所经过的完整流程。</li></ul><h2 id=tracing-的简单实现>Tracing 的简单实现<a hidden class=anchor aria-hidden=true href=#tracing-的简单实现>#</a></h2><h3 id=tracego><code>trace.go</code><a hidden class=anchor aria-hidden=true href=#tracego>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// trace.go</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kn>package</span><span class=w> </span><span class=nx>trace</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kn>import</span><span class=w> </span><span class=p>(</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;context&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;crypto/rand&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;encoding/hex&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;fmt&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;time&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>TraceID</span><span class=w> </span><span class=p>[</span><span class=mi>16</span><span class=p>]</span><span class=kt>byte</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>SpanID</span><span class=w> </span><span class=p>[</span><span class=mi>8</span><span class=p>]</span><span class=kt>byte</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>Span</span><span class=w> </span><span class=kd>struct</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>TraceID</span><span class=w>      </span><span class=nx>TraceID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>SpanID</span><span class=w>       </span><span class=nx>SpanID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>ParentSpanID</span><span class=w> </span><span class=nx>SpanID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>Name</span><span class=w> </span><span class=kt>string</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>StartTime</span><span class=w> </span><span class=nx>time</span><span class=p>.</span><span class=nx>Time</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>EndTime</span><span class=w>   </span><span class=nx>time</span><span class=p>.</span><span class=nx>Time</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>type</span><span class=w> </span><span class=nx>spanKey</span><span class=w> </span><span class=kd>struct</span><span class=p>{}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>newTraceID</span><span class=p>()</span><span class=w> </span><span class=nx>TraceID</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>var</span><span class=w> </span><span class=nx>id</span><span class=w> </span><span class=nx>TraceID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>_</span><span class=p>,</span><span class=w> </span><span class=nx>_</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>rand</span><span class=p>.</span><span class=nf>Read</span><span class=p>(</span><span class=nx>id</span><span class=p>[:])</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>return</span><span class=w> </span><span class=nx>id</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>newSpanID</span><span class=p>()</span><span class=w> </span><span class=nx>SpanID</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>var</span><span class=w> </span><span class=nx>id</span><span class=w> </span><span class=nx>SpanID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>_</span><span class=p>,</span><span class=w> </span><span class=nx>_</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>rand</span><span class=p>.</span><span class=nf>Read</span><span class=p>(</span><span class=nx>id</span><span class=p>[:])</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>return</span><span class=w> </span><span class=nx>id</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>id</span><span class=w> </span><span class=nx>TraceID</span><span class=p>)</span><span class=w> </span><span class=nf>String</span><span class=p>()</span><span class=w> </span><span class=kt>string</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>return</span><span class=w> </span><span class=nx>hex</span><span class=p>.</span><span class=nf>EncodeToString</span><span class=p>(</span><span class=nx>id</span><span class=p>[:])</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>id</span><span class=w> </span><span class=nx>SpanID</span><span class=p>)</span><span class=w> </span><span class=nf>String</span><span class=p>()</span><span class=w> </span><span class=kt>string</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>return</span><span class=w> </span><span class=nx>hex</span><span class=p>.</span><span class=nf>EncodeToString</span><span class=p>(</span><span class=nx>id</span><span class=p>[:])</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>spanFromContext</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=o>*</span><span class=nx>Span</span><span class=p>,</span><span class=w> </span><span class=kt>bool</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>span</span><span class=p>,</span><span class=w> </span><span class=nx>ok</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>ctx</span><span class=p>.</span><span class=nf>Value</span><span class=p>(</span><span class=nx>spanKey</span><span class=p>{}).(</span><span class=o>*</span><span class=nx>Span</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>return</span><span class=w> </span><span class=nx>span</span><span class=p>,</span><span class=w> </span><span class=nx>ok</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>Start</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=nx>name</span><span class=w> </span><span class=kt>string</span><span class=p>)</span><span class=w> </span><span class=p>(</span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>,</span><span class=w> </span><span class=o>*</span><span class=nx>Span</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>var</span><span class=w> </span><span class=nx>traceID</span><span class=w> </span><span class=nx>TraceID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=kd>var</span><span class=w> </span><span class=nx>spanID</span><span class=w> </span><span class=nx>SpanID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>if</span><span class=w> </span><span class=nx>span</span><span class=p>,</span><span class=w> </span><span class=nx>ok</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nf>spanFromContext</span><span class=p>(</span><span class=nx>ctx</span><span class=p>);</span><span class=w> </span><span class=nx>ok</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>traceID</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>span</span><span class=p>.</span><span class=nx>TraceID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>spanID</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>span</span><span class=p>.</span><span class=nx>SpanID</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w> </span><span class=k>else</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>traceID</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nf>newTraceID</span><span class=p>()</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>span</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=o>&amp;</span><span class=nx>Span</span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>TraceID</span><span class=p>:</span><span class=w>      </span><span class=nx>traceID</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>SpanID</span><span class=p>:</span><span class=w>       </span><span class=nf>newSpanID</span><span class=p>(),</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>ParentSpanID</span><span class=p>:</span><span class=w> </span><span class=nx>spanID</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>Name</span><span class=p>:</span><span class=w> </span><span class=nx>name</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>StartTime</span><span class=p>:</span><span class=w> </span><span class=nx>time</span><span class=p>.</span><span class=nf>Now</span><span class=p>(),</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>ctx</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nf>WithValue</span><span class=p>(</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=nx>spanKey</span><span class=p>{},</span><span class=w> </span><span class=nx>span</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>return</span><span class=w> </span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=nx>span</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=p>(</span><span class=nx>s</span><span class=w> </span><span class=o>*</span><span class=nx>Span</span><span class=p>)</span><span class=w> </span><span class=nf>End</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>s</span><span class=p>.</span><span class=nx>EndTime</span><span class=w> </span><span class=p>=</span><span class=w> </span><span class=nx>time</span><span class=p>.</span><span class=nf>Now</span><span class=p>()</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>fmt</span><span class=p>.</span><span class=nf>Printf</span><span class=p>(</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=s>&#34;trace_id=%s span_id=%s parent_span_id=%s name=%q duration=%s\n&#34;</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>s</span><span class=p>.</span><span class=nx>TraceID</span><span class=p>.</span><span class=nf>String</span><span class=p>(),</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>s</span><span class=p>.</span><span class=nx>SpanID</span><span class=p>.</span><span class=nf>String</span><span class=p>(),</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>s</span><span class=p>.</span><span class=nx>ParentSpanID</span><span class=p>.</span><span class=nf>String</span><span class=p>(),</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>s</span><span class=p>.</span><span class=nx>Name</span><span class=p>,</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>		</span><span class=nx>s</span><span class=p>.</span><span class=nx>EndTime</span><span class=p>.</span><span class=nf>Sub</span><span class=p>(</span><span class=nx>s</span><span class=p>.</span><span class=nx>StartTime</span><span class=p>),</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><h3 id=maingo><code>main.go</code><a hidden class=anchor aria-hidden=true href=#maingo>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-go data-lang=go><span class=line><span class=cl><span class=c1>// main.go</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kn>package</span><span class=w> </span><span class=nx>main</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kn>import</span><span class=w> </span><span class=p>(</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;context&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;time&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=s>&#34;your-path/trace&#34;</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>main</span><span class=p>()</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>ctx</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nf>Background</span><span class=p>()</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=nx>span</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>trace</span><span class=p>.</span><span class=nf>Start</span><span class=p>(</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=s>&#34;main&#34;</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>defer</span><span class=w> </span><span class=nx>span</span><span class=p>.</span><span class=nf>End</span><span class=p>()</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nf>queryDB</span><span class=p>(</span><span class=nx>ctx</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>queryDB</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=nx>span</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>trace</span><span class=p>.</span><span class=nf>Start</span><span class=p>(</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=s>&#34;queryDB&#34;</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>defer</span><span class=w> </span><span class=nx>span</span><span class=p>.</span><span class=nf>End</span><span class=p>()</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>time</span><span class=p>.</span><span class=nf>Sleep</span><span class=p>(</span><span class=mi>100</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=nx>time</span><span class=p>.</span><span class=nx>Millisecond</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nf>callRedis</span><span class=p>(</span><span class=nx>ctx</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=kd>func</span><span class=w> </span><span class=nf>callRedis</span><span class=p>(</span><span class=nx>ctx</span><span class=w> </span><span class=nx>context</span><span class=p>.</span><span class=nx>Context</span><span class=p>)</span><span class=w> </span><span class=p>{</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>_</span><span class=p>,</span><span class=w> </span><span class=nx>span</span><span class=w> </span><span class=o>:=</span><span class=w> </span><span class=nx>trace</span><span class=p>.</span><span class=nf>Start</span><span class=p>(</span><span class=nx>ctx</span><span class=p>,</span><span class=w> </span><span class=s>&#34;redis.GET&#34;</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=k>defer</span><span class=w> </span><span class=nx>span</span><span class=p>.</span><span class=nf>End</span><span class=p>()</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>
-</span></span></span><span class=line><span class=cl><span class=w>	</span><span class=nx>time</span><span class=p>.</span><span class=nf>Sleep</span><span class=p>(</span><span class=mi>50</span><span class=w> </span><span class=o>*</span><span class=w> </span><span class=nx>time</span><span class=p>.</span><span class=nx>Millisecond</span><span class=p>)</span><span class=w>
-</span></span></span><span class=line><span class=cl><span class=p>}</span><span class=w>
-</span></span></span></code></pre></div><h3 id=输出示例>输出示例<a hidden class=anchor aria-hidden=true href=#输出示例>#</a></h3><div class=highlight><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=&#34;redis.GET&#34; duration=50.382959ms
-</span></span><span class=line><span class=cl>trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=&#34;queryDB&#34; duration=150.616125ms
-</span></span><span class=line><span class=cl>trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=&#34;main&#34; duration=150.621167ms
-</span></span></code></pre></div><h2 id=生产环境中的-tracing>生产环境中的 Tracing<a hidden class=anchor aria-hidden=true href=#生产环境中的-tracing>#</a></h2><p>上面只是一个简单的本地实现。生产环境中的 Tracing 通常还应包含：</p><ul><li><strong>Connector（连接器）</strong>：用于连接远程收集器。</li><li><strong>Exporter（导出器）</strong>：定义导出协议（如 OTLP、gRPC 等），以及采用单条发送还是批量发送。</li><li><strong>Sampler（采样器）</strong>：定义采样频率。</li></ul></div><footer class=post-footer><ul class=post-tags><li><a href=https://blog.brianliu.top/tags/arch/>Arch</a></li></ul><nav class=paginav><a class=prev href=https://blog.brianliu.top/posts/high-performance/high-performance/><span class=title>« 上一页</span>
-<span>高性能服务</span></a></nav></footer></article></main><footer class=footer><div class=tn-footer-line><span>&copy; 2026 <a href=https://blog.brianliu.top/>Brian's Blog</a></span>
-<span>Powered by
-<a href="https://gohugo.io/?utm_source=papermod" rel=noopener target=_blank>Hugo</a> &
-<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></div></footer><div class=tn-statusbar aria-hidden=true><div class=tn-sb-group><span class="tn-sb-item tn-branch">git:(main)</span>
-<span class="tn-sb-item tn-ok">✓ 0 errors</span>
-<span class="tn-sb-item tn-warn">! 0 warnings</span></div><div class=tn-sb-group><span class=tn-sb-item>Ln 1, Col 1</span>
-<span class=tn-sb-item>UTF-8</span>
-<span class=tn-sb-item>LF</span>
-<span class="tn-sb-item tn-lang">Markdown</span>
-<span class="tn-sb-item tn-ok">✓ Prettier</span></div></div><a href=#top id=top-link class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey=g><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
-</a><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var toplink=document.getElementById("top-link");window.onscroll=function(){const e=window.innerHeight;document.body.scrollTop>e||document.documentElement.scrollTop>e?toplink.classList.remove("hidden"):toplink.classList.add("hidden")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="复制";function s(){t.innerHTML="已复制！",setTimeout(()=>{t.innerHTML="复制"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>可观测性 | Brian&#39;s Blog</title>
+<meta name="keywords" content="arch">
+<meta name="description" content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/observability/observability/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css" integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#1a1b26">
+<meta name="msapplication-TileColor" content="#1a1b26">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/observability/observability/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
+<meta property="og:url" content="http://localhost:1313/posts/observability/observability/">
+  <meta property="og:site_name" content="Brian&#39;s Blog">
+  <meta property="og:title" content="可观测性">
+  <meta property="og:description" content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-08-27T00:00:00+08:00">
+    <meta property="article:modified_time" content="2026-09-09T10:08:23+08:00">
+    <meta property="article:tag" content="Arch">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="可观测性">
+  <meta name="twitter:description" content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "文章",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "可观测性",
+      "item": "http://localhost:1313/posts/observability/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "可观测性",
+      "item": "http://localhost:1313/posts/observability/observability/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "可观测性",
+  "name": "可观测性",
+  "description": "Logging / Metrics / Tracing，以及一个最小 Tracing 实现",
+  "keywords": [
+    "arch"
+  ],
+  "articleBody": "可观测性 可观测性是衡量软件部署到生产环境后能否被有效运维，以及能否快速发现问题的一个重要指标。\n可观测性主要包含三大支柱：\nLogging：记录软件运行过程中重要事件的离散数据。 Metrics：定时采集的时间序列数据，用于反映系统状态和变化趋势。 Tracing：追踪一次请求所经过的完整流程。 Tracing 的简单实现 trace.go // trace.go package trace import ( \"context\" \"crypto/rand\" \"encoding/hex\" \"fmt\" \"time\" ) type TraceID [16]byte type SpanID [8]byte type Span struct { TraceID TraceID SpanID SpanID ParentSpanID SpanID Name string StartTime time.Time EndTime time.Time } type spanKey struct{} func newTraceID() TraceID { var id TraceID _, _ = rand.Read(id[:]) return id } func newSpanID() SpanID { var id SpanID _, _ = rand.Read(id[:]) return id } func (id TraceID) String() string { return hex.EncodeToString(id[:]) } func (id SpanID) String() string { return hex.EncodeToString(id[:]) } func spanFromContext(ctx context.Context) (*Span, bool) { span, ok := ctx.Value(spanKey{}).(*Span) return span, ok } func Start(ctx context.Context, name string) (context.Context, *Span) { var traceID TraceID var spanID SpanID if span, ok := spanFromContext(ctx); ok { traceID = span.TraceID spanID = span.SpanID } else { traceID = newTraceID() } span := \u0026Span{ TraceID: traceID, SpanID: newSpanID(), ParentSpanID: spanID, Name: name, StartTime: time.Now(), } ctx = context.WithValue(ctx, spanKey{}, span) return ctx, span } func (s *Span) End() { s.EndTime = time.Now() fmt.Printf( \"trace_id=%s span_id=%s parent_span_id=%s name=%q duration=%s\\n\", s.TraceID.String(), s.SpanID.String(), s.ParentSpanID.String(), s.Name, s.EndTime.Sub(s.StartTime), ) } main.go // main.go package main import ( \"context\" \"time\" \"your-path/trace\" ) func main() { ctx := context.Background() ctx, span := trace.Start(ctx, \"main\") defer span.End() queryDB(ctx) } func queryDB(ctx context.Context) { ctx, span := trace.Start(ctx, \"queryDB\") defer span.End() time.Sleep(100 * time.Millisecond) callRedis(ctx) } func callRedis(ctx context.Context) { _, span := trace.Start(ctx, \"redis.GET\") defer span.End() time.Sleep(50 * time.Millisecond) } 输出示例 trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=\"redis.GET\" duration=50.382959ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=\"queryDB\" duration=150.616125ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=\"main\" duration=150.621167ms 生产环境中的 Tracing 上面只是一个简单的本地实现。生产环境中的 Tracing 通常还应包含：\nConnector（连接器）：用于连接远程收集器。 Exporter（导出器）：定义导出协议（如 OTLP、gRPC 等），以及采用单条发送还是批量发送。 Sampler（采样器）：定义采样频率。 ",
+  "wordCount" : "532",
+  "inLanguage": "zh",
+  "datePublished": "2026-08-27T00:00:00+08:00",
+  "dateModified": "2026-09-09T10:08:23+08:00",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/observability/observability/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Brian's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="http://localhost:1313/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="Archives">
+                    <span>Archives</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <div class="tn-buffer-bar" aria-hidden="true">~/blog/posts/observability/observability/</div>
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/">主页</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/">文章</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/observability/">可观测性</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      可观测性
+    </h1>
+    <div class="post-description">
+      Logging / Metrics / Tracing，以及一个最小 Tracing 实现
+    </div>
+    <div class="post-meta">
+
+<span title='2026-08-27 00:00:00 +0800 CST'>2026-08-27</span>&nbsp;·&nbsp;<span>2 分钟</span>
+
+</div>
+  </header> 
+  <div class="post-content md-content"><h1 id="可观测性">可观测性<a hidden class="anchor" aria-hidden="true" href="#可观测性">#</a></h1>
+<p>可观测性是衡量软件部署到生产环境后能否被有效运维，以及能否快速发现问题的一个重要指标。</p>
+<p>可观测性主要包含三大支柱：</p>
+<ul>
+<li><strong>Logging</strong>：记录软件运行过程中重要事件的离散数据。</li>
+<li><strong>Metrics</strong>：定时采集的时间序列数据，用于反映系统状态和变化趋势。</li>
+<li><strong>Tracing</strong>：追踪一次请求所经过的完整流程。</li>
+</ul>
+<h2 id="tracing-的简单实现">Tracing 的简单实现<a hidden class="anchor" aria-hidden="true" href="#tracing-的简单实现">#</a></h2>
+<h3 id="tracego"><code>trace.go</code><a hidden class="anchor" aria-hidden="true" href="#tracego">#</a></h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// trace.go</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">trace</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;context&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;crypto/rand&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;encoding/hex&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;fmt&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">TraceID</span><span class="w"> </span><span class="p">[</span><span class="mi">16</span><span class="p">]</span><span class="kt">byte</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">SpanID</span><span class="w"> </span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="kt">byte</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Span</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">TraceID</span><span class="w">      </span><span class="nx">TraceID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">SpanID</span><span class="w">       </span><span class="nx">SpanID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ParentSpanID</span><span class="w"> </span><span class="nx">SpanID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Name</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">StartTime</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">EndTime</span><span class="w">   </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">spanKey</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">newTraceID</span><span class="p">()</span><span class="w"> </span><span class="nx">TraceID</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="nx">TraceID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">rand</span><span class="p">.</span><span class="nf">Read</span><span class="p">(</span><span class="nx">id</span><span class="p">[:])</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">id</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">newSpanID</span><span class="p">()</span><span class="w"> </span><span class="nx">SpanID</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="nx">SpanID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">rand</span><span class="p">.</span><span class="nf">Read</span><span class="p">(</span><span class="nx">id</span><span class="p">[:])</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">id</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="nx">TraceID</span><span class="p">)</span><span class="w"> </span><span class="nf">String</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">hex</span><span class="p">.</span><span class="nf">EncodeToString</span><span class="p">(</span><span class="nx">id</span><span class="p">[:])</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">id</span><span class="w"> </span><span class="nx">SpanID</span><span class="p">)</span><span class="w"> </span><span class="nf">String</span><span class="p">()</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">hex</span><span class="p">.</span><span class="nf">EncodeToString</span><span class="p">(</span><span class="nx">id</span><span class="p">[:])</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">spanFromContext</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Span</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">span</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ctx</span><span class="p">.</span><span class="nf">Value</span><span class="p">(</span><span class="nx">spanKey</span><span class="p">{}).(</span><span class="o">*</span><span class="nx">Span</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">span</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">Start</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="nx">Span</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">traceID</span><span class="w"> </span><span class="nx">TraceID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">spanID</span><span class="w"> </span><span class="nx">SpanID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">span</span><span class="p">,</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">spanFromContext</span><span class="p">(</span><span class="nx">ctx</span><span class="p">);</span><span class="w"> </span><span class="nx">ok</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">traceID</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">span</span><span class="p">.</span><span class="nx">TraceID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">spanID</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">span</span><span class="p">.</span><span class="nx">SpanID</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">traceID</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nf">newTraceID</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">span</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">Span</span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">TraceID</span><span class="p">:</span><span class="w">      </span><span class="nx">traceID</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">SpanID</span><span class="p">:</span><span class="w">       </span><span class="nf">newSpanID</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">ParentSpanID</span><span class="p">:</span><span class="w"> </span><span class="nx">spanID</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">Name</span><span class="p">:</span><span class="w"> </span><span class="nx">name</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">StartTime</span><span class="p">:</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nf">Now</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ctx</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">WithValue</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">spanKey</span><span class="p">{},</span><span class="w"> </span><span class="nx">span</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">span</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Span</span><span class="p">)</span><span class="w"> </span><span class="nf">End</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">s</span><span class="p">.</span><span class="nx">EndTime</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nf">Now</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="s">&#34;trace_id=%s span_id=%s parent_span_id=%s name=%q duration=%s\n&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">s</span><span class="p">.</span><span class="nx">TraceID</span><span class="p">.</span><span class="nf">String</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">s</span><span class="p">.</span><span class="nx">SpanID</span><span class="p">.</span><span class="nf">String</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">s</span><span class="p">.</span><span class="nx">ParentSpanID</span><span class="p">.</span><span class="nf">String</span><span class="p">(),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">s</span><span class="p">.</span><span class="nx">Name</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">s</span><span class="p">.</span><span class="nx">EndTime</span><span class="p">.</span><span class="nf">Sub</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">StartTime</span><span class="p">),</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="maingo"><code>main.go</code><a hidden class="anchor" aria-hidden="true" href="#maingo">#</a></h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// main.go</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;context&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;time&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;your-path/trace&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ctx</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">span</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">trace</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;main&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">span</span><span class="p">.</span><span class="nf">End</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nf">queryDB</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">queryDB</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">span</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">trace</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;queryDB&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">span</span><span class="p">.</span><span class="nf">End</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nf">callRedis</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">callRedis</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">span</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">trace</span><span class="p">.</span><span class="nf">Start</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;redis.GET&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">span</span><span class="p">.</span><span class="nf">End</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><h3 id="输出示例">输出示例<a hidden class="anchor" aria-hidden="true" href="#输出示例">#</a></h3>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=&#34;redis.GET&#34; duration=50.382959ms
+</span></span><span class="line"><span class="cl">trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=&#34;queryDB&#34; duration=150.616125ms
+</span></span><span class="line"><span class="cl">trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=&#34;main&#34; duration=150.621167ms
+</span></span></code></pre></div><h2 id="生产环境中的-tracing">生产环境中的 Tracing<a hidden class="anchor" aria-hidden="true" href="#生产环境中的-tracing">#</a></h2>
+<p>上面只是一个简单的本地实现。生产环境中的 Tracing 通常还应包含：</p>
+<ul>
+<li><strong>Connector（连接器）</strong>：用于连接远程收集器。</li>
+<li><strong>Exporter（导出器）</strong>：定义导出协议（如 OTLP、gRPC 等），以及采用单条发送还是批量发送。</li>
+<li><strong>Sampler（采样器）</strong>：定义采样频率。</li>
+</ul>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/arch/">Arch</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/high-performance/high-performance/">
+    <span class="title">« 上一页</span>
+    <span>高性能服务</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <div class="tn-footer-line">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+    </div>
+</footer>
+<div class="tn-statusbar" aria-hidden="true">
+  <div class="tn-sb-group">
+    <span class="tn-sb-item tn-branch">git:(main)</span>
+    <span class="tn-sb-item tn-ok">✓ 0 errors</span>
+    <span class="tn-sb-item tn-warn">! 0 warnings</span>
+  </div>
+  <div class="tn-sb-group">
+    <span class="tn-sb-item">Ln 1, Col 1</span>
+    <span class="tn-sb-item">UTF-8</span>
+    <span class="tn-sb-item">LF</span>
+    <span class="tn-sb-item tn-lang">Markdown</span>
+    <span class="tn-sb-item tn-ok">✓ Prettier</span>
+  </div>
+</div>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

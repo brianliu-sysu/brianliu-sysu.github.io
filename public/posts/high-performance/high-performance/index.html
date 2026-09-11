@@ -1,22 +1,383 @@
-<!doctype html><html lang=zh dir=auto data-theme=dark><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>高性能服务 | Brian's Blog</title><meta name=keywords content="arch"><meta name=description content="从可维护性、性能、稳定性三个维度看高性能服务"><meta name=author content><link rel=canonical href=https://blog.brianliu.top/posts/high-performance/high-performance/><link crossorigin=anonymous href=/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as=style><link rel=icon href=https://blog.brianliu.top/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://blog.brianliu.top/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://blog.brianliu.top/favicon-32x32.png><link rel=apple-touch-icon href=https://blog.brianliu.top/apple-touch-icon.png><link rel=mask-icon href=https://blog.brianliu.top/safari-pinned-tab.svg><meta name=theme-color content="#1a1b26"><meta name=msapplication-TileColor content="#1a1b26"><link rel=alternate hreflang=zh href=https://blog.brianliu.top/posts/high-performance/high-performance/><noscript><style>#theme-toggle,.top-link{display:none}</style></noscript><script>localStorage.getItem("pref-theme")==="light"&&(document.querySelector("html").dataset.theme="light")</script><link rel=preconnect href=https://fonts.bunny.net><link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel=stylesheet><meta property="og:url" content="https://blog.brianliu.top/posts/high-performance/high-performance/"><meta property="og:site_name" content="Brian's Blog"><meta property="og:title" content="高性能服务"><meta property="og:description" content="从可维护性、性能、稳定性三个维度看高性能服务"><meta property="og:locale" content="zh_cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-09-07T00:00:00+08:00"><meta property="article:modified_time" content="2026-09-09T09:09:46+08:00"><meta property="article:tag" content="Arch"><meta name=twitter:card content="summary"><meta name=twitter:title content="高性能服务"><meta name=twitter:description content="从可维护性、性能、稳定性三个维度看高性能服务"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"文章","item":"https://blog.brianliu.top/posts/"},{"@type":"ListItem","position":2,"name":"高性能","item":"https://blog.brianliu.top/posts/high-performance/"},{"@type":"ListItem","position":3,"name":"高性能服务","item":"https://blog.brianliu.top/posts/high-performance/high-performance/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"高性能服务","name":"高性能服务","description":"从可维护性、性能、稳定性三个维度看高性能服务","keywords":["arch"],"articleBody":"高性能服务 开发的服务是否具备高性能，是衡量一个程序员功力的基本指标。\n开发一个服务一般需要从几个方面来思考：\n代码的可维护性：逻辑架构是否清晰，是否易扩展，出现错误是否易排查。 服务的性能：并发架构、IO 模型、数据库、缓存。 服务的稳定性：限流、熔断、隔离、服务降级、发布流程。 代码的可维护性 架构设计 架构设计是服务可维护性和可扩展性的基石，也是高性能的基础。一般有几个设计原则：\n依赖接口，不依赖具体实现（便于测试，便于后续扩展）。 高内聚低耦合，对外提供统一且最小化的接口。 架构设计要符合当前团队规模和业务目标，不要超前设计。 高性能 高性能是衡量一个服务是否满足用户需求的重要指标。Go 提供了很多工具来帮助我们找到系统的性能瓶颈：\npprof trace benchmark 改善系统性能的一般流程为：\n设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果 主要从几个方面来定位问题：\nCPU 内存 IO 服务的稳定性 提供稳定的服务是一个服务是否成功的重要标识。为了提供稳定的服务，我们需要考虑下面的问题：\n设置服务的最大访问容量，超出容量的部分直接报错（限流算法包含：滑动窗口、漏桶、令牌桶等）。 下游服务出现报错要如何处理（限流、熔断、降级）。 对核心业务进行隔离，防止其他非核心业务出问题导致服务崩溃（数据隔离、业务隔离）。 ","wordCount":"525","inLanguage":"zh","datePublished":"2026-09-07T00:00:00+08:00","dateModified":"2026-09-09T09:09:46+08:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://blog.brianliu.top/posts/high-performance/high-performance/"},"publisher":{"@type":"Organization","name":"Brian's Blog","logo":{"@type":"ImageObject","url":"https://blog.brianliu.top/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=header-nav><div class=logo><a href=https://blog.brianliu.top/ accesskey=h title="brian (Alt + H)">brian</a><div class=logo-switches><button id=theme-toggle class=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
-<svg class="moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-<svg class="sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu class=menu><li><a href=https://blog.brianliu.top/posts/ title=Posts><span>Posts</span></a></li><li><a href=https://blog.brianliu.top/archives/ title=Archives><span>Archives</span></a></li><li><a href=https://blog.brianliu.top/search/ title="Search (Alt + /)" accesskey=/><span>Search</span></a></li></ul></nav></header><main class=main><article class=post-single><div class=tn-buffer-bar aria-hidden=true>~/blog/posts/high-performance/high-performance/</div><header class=post-header><nav class=breadcrumbs role=navigation aria-label=Breadcrumb><a href=/>主页</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
-<a href=/posts/>文章</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg>
-<a href=/posts/high-performance/>高性能</a>
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right"><polyline points="9 18 15 12 9 6"/></svg></nav><h1 class="post-title entry-hint-parent">高性能服务</h1><div class=post-description>从可维护性、性能、稳定性三个维度看高性能服务</div><div class=post-meta><span title='2026-09-07 00:00:00 +0800 CST'>2026-09-07</span>&nbsp;·&nbsp;<span>2 分钟</span></div></header><div class="post-content md-content"><h1 id=高性能服务>高性能服务<a hidden class=anchor aria-hidden=true href=#高性能服务>#</a></h1><p>开发的服务是否具备高性能，是衡量一个程序员功力的基本指标。</p><p>开发一个服务一般需要从几个方面来思考：</p><ul><li><strong>代码的可维护性</strong>：逻辑架构是否清晰，是否易扩展，出现错误是否易排查。</li><li><strong>服务的性能</strong>：并发架构、IO 模型、数据库、缓存。</li><li><strong>服务的稳定性</strong>：限流、熔断、隔离、服务降级、发布流程。</li></ul><h2 id=代码的可维护性>代码的可维护性<a hidden class=anchor aria-hidden=true href=#代码的可维护性>#</a></h2><h3 id=架构设计>架构设计<a hidden class=anchor aria-hidden=true href=#架构设计>#</a></h3><p>架构设计是服务可维护性和可扩展性的基石，也是高性能的基础。一般有几个设计原则：</p><ul><li>依赖接口，不依赖具体实现（便于测试，便于后续扩展）。</li><li>高内聚低耦合，对外提供统一且最小化的接口。</li><li>架构设计要符合当前团队规模和业务目标，不要超前设计。</li></ul><h2 id=高性能>高性能<a hidden class=anchor aria-hidden=true href=#高性能>#</a></h2><p>高性能是衡量一个服务是否满足用户需求的重要指标。Go 提供了很多工具来帮助我们找到系统的性能瓶颈：</p><ul><li><code>pprof</code></li><li><code>trace</code></li><li><code>benchmark</code></li></ul><p>改善系统性能的一般流程为：</p><div class=highlight><pre tabindex=0 class=chroma><code class=language-text data-lang=text><span class=line><span class=cl>设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果
-</span></span></code></pre></div><p>主要从几个方面来定位问题：</p><ul><li>CPU</li><li>内存</li><li>IO</li></ul><h2 id=服务的稳定性>服务的稳定性<a hidden class=anchor aria-hidden=true href=#服务的稳定性>#</a></h2><p>提供稳定的服务是一个服务是否成功的重要标识。为了提供稳定的服务，我们需要考虑下面的问题：</p><ul><li>设置服务的最大访问容量，超出容量的部分直接报错（限流算法包含：滑动窗口、漏桶、令牌桶等）。</li><li>下游服务出现报错要如何处理（限流、熔断、降级）。</li><li>对核心业务进行隔离，防止其他非核心业务出问题导致服务崩溃（数据隔离、业务隔离）。</li></ul></div><footer class=post-footer><ul class=post-tags><li><a href=https://blog.brianliu.top/tags/arch/>Arch</a></li></ul><nav class=paginav><a class=prev href=https://blog.brianliu.top/posts/etcd/etcd-read-write-process/><span class=title>« 上一页</span>
-<span>Etcd 读写流程</span>
-</a><a class=next href=https://blog.brianliu.top/posts/observability/observability/><span class=title>下一页 »</span>
-<span>可观测性</span></a></nav></footer></article></main><footer class=footer><div class=tn-footer-line><span>&copy; 2026 <a href=https://blog.brianliu.top/>Brian's Blog</a></span>
-<span>Powered by
-<a href="https://gohugo.io/?utm_source=papermod" rel=noopener target=_blank>Hugo</a> &
-<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></div></footer><div class=tn-statusbar aria-hidden=true><div class=tn-sb-group><span class="tn-sb-item tn-branch">git:(main)</span>
-<span class="tn-sb-item tn-ok">✓ 0 errors</span>
-<span class="tn-sb-item tn-warn">! 0 warnings</span></div><div class=tn-sb-group><span class=tn-sb-item>Ln 1, Col 1</span>
-<span class=tn-sb-item>UTF-8</span>
-<span class=tn-sb-item>LF</span>
-<span class="tn-sb-item tn-lang">Markdown</span>
-<span class="tn-sb-item tn-ok">✓ Prettier</span></div></div><a href=#top id=top-link class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey=g><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up"><polyline points="17 11 12 6 7 11"/><polyline points="17 18 12 13 7 18"/></svg>
-</a><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var toplink=document.getElementById("top-link");window.onscroll=function(){const e=window.innerHeight;document.body.scrollTop>e||document.documentElement.scrollTop>e?toplink.classList.remove("hidden"):toplink.classList.add("hidden")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="复制";function s(){t.innerHTML="已复制！",setTimeout(()=>{t.innerHTML="复制"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>高性能服务 | Brian&#39;s Blog</title>
+<meta name="keywords" content="arch">
+<meta name="description" content="从可维护性、性能、稳定性三个维度看高性能服务">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/high-performance/high-performance/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css" integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#1a1b26">
+<meta name="msapplication-TileColor" content="#1a1b26">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/high-performance/high-performance/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
+<meta property="og:url" content="http://localhost:1313/posts/high-performance/high-performance/">
+  <meta property="og:site_name" content="Brian&#39;s Blog">
+  <meta property="og:title" content="高性能服务">
+  <meta property="og:description" content="从可维护性、性能、稳定性三个维度看高性能服务">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-09-07T00:00:00+08:00">
+    <meta property="article:modified_time" content="2026-09-09T10:08:23+08:00">
+    <meta property="article:tag" content="Arch">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="高性能服务">
+  <meta name="twitter:description" content="从可维护性、性能、稳定性三个维度看高性能服务">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "文章",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "高性能",
+      "item": "http://localhost:1313/posts/high-performance/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "高性能服务",
+      "item": "http://localhost:1313/posts/high-performance/high-performance/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "高性能服务",
+  "name": "高性能服务",
+  "description": "从可维护性、性能、稳定性三个维度看高性能服务",
+  "keywords": [
+    "arch"
+  ],
+  "articleBody": "高性能服务 开发的服务是否具备高性能，是衡量一个程序员功力的基本指标。\n开发一个服务一般需要从几个方面来思考：\n代码的可维护性：逻辑架构是否清晰，是否易扩展，出现错误是否易排查。 服务的性能：并发架构、IO 模型、数据库、缓存。 服务的稳定性：限流、熔断、隔离、服务降级、发布流程。 代码的可维护性 架构设计 架构设计是服务可维护性和可扩展性的基石，也是高性能的基础。一般有几个设计原则：\n依赖接口，不依赖具体实现（便于测试，便于后续扩展）。 高内聚低耦合，对外提供统一且最小化的接口。 架构设计要符合当前团队规模和业务目标，不要超前设计。 高性能 高性能是衡量一个服务是否满足用户需求的重要指标。Go 提供了很多工具来帮助我们找到系统的性能瓶颈：\npprof trace benchmark 改善系统性能的一般流程为：\n设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果 主要从几个方面来定位问题：\nCPU 内存 IO 服务的稳定性 提供稳定的服务是一个服务是否成功的重要标识。为了提供稳定的服务，我们需要考虑下面的问题：\n设置服务的最大访问容量，超出容量的部分直接报错（限流算法包含：滑动窗口、漏桶、令牌桶等）。 下游服务出现报错要如何处理（限流、熔断、降级）。 对核心业务进行隔离，防止其他非核心业务出问题导致服务崩溃（数据隔离、业务隔离）。 ",
+  "wordCount" : "525",
+  "inLanguage": "zh",
+  "datePublished": "2026-09-07T00:00:00+08:00",
+  "dateModified": "2026-09-09T10:08:23+08:00",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/high-performance/high-performance/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Brian's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="http://localhost:1313/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="Archives">
+                    <span>Archives</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <div class="tn-buffer-bar" aria-hidden="true">~/blog/posts/high-performance/high-performance/</div>
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/">主页</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/">文章</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/high-performance/">高性能</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      高性能服务
+    </h1>
+    <div class="post-description">
+      从可维护性、性能、稳定性三个维度看高性能服务
+    </div>
+    <div class="post-meta">
+
+<span title='2026-09-07 00:00:00 +0800 CST'>2026-09-07</span>&nbsp;·&nbsp;<span>2 分钟</span>
+
+</div>
+  </header> 
+  <div class="post-content md-content"><h1 id="高性能服务">高性能服务<a hidden class="anchor" aria-hidden="true" href="#高性能服务">#</a></h1>
+<p>开发的服务是否具备高性能，是衡量一个程序员功力的基本指标。</p>
+<p>开发一个服务一般需要从几个方面来思考：</p>
+<ul>
+<li><strong>代码的可维护性</strong>：逻辑架构是否清晰，是否易扩展，出现错误是否易排查。</li>
+<li><strong>服务的性能</strong>：并发架构、IO 模型、数据库、缓存。</li>
+<li><strong>服务的稳定性</strong>：限流、熔断、隔离、服务降级、发布流程。</li>
+</ul>
+<h2 id="代码的可维护性">代码的可维护性<a hidden class="anchor" aria-hidden="true" href="#代码的可维护性">#</a></h2>
+<h3 id="架构设计">架构设计<a hidden class="anchor" aria-hidden="true" href="#架构设计">#</a></h3>
+<p>架构设计是服务可维护性和可扩展性的基石，也是高性能的基础。一般有几个设计原则：</p>
+<ul>
+<li>依赖接口，不依赖具体实现（便于测试，便于后续扩展）。</li>
+<li>高内聚低耦合，对外提供统一且最小化的接口。</li>
+<li>架构设计要符合当前团队规模和业务目标，不要超前设计。</li>
+</ul>
+<h2 id="高性能">高性能<a hidden class="anchor" aria-hidden="true" href="#高性能">#</a></h2>
+<p>高性能是衡量一个服务是否满足用户需求的重要指标。Go 提供了很多工具来帮助我们找到系统的性能瓶颈：</p>
+<ul>
+<li><code>pprof</code></li>
+<li><code>trace</code></li>
+<li><code>benchmark</code></li>
+</ul>
+<p>改善系统性能的一般流程为：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果
+</span></span></code></pre></div><p>主要从几个方面来定位问题：</p>
+<ul>
+<li>CPU</li>
+<li>内存</li>
+<li>IO</li>
+</ul>
+<h2 id="服务的稳定性">服务的稳定性<a hidden class="anchor" aria-hidden="true" href="#服务的稳定性">#</a></h2>
+<p>提供稳定的服务是一个服务是否成功的重要标识。为了提供稳定的服务，我们需要考虑下面的问题：</p>
+<ul>
+<li>设置服务的最大访问容量，超出容量的部分直接报错（限流算法包含：滑动窗口、漏桶、令牌桶等）。</li>
+<li>下游服务出现报错要如何处理（限流、熔断、降级）。</li>
+<li>对核心业务进行隔离，防止其他非核心业务出问题导致服务崩溃（数据隔离、业务隔离）。</li>
+</ul>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/arch/">Arch</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="prev" href="http://localhost:1313/posts/etcd/etcd-read-write-process/">
+    <span class="title">« 上一页</span>
+    <span>Etcd 读写流程</span>
+  </a>
+  <a class="next" href="http://localhost:1313/posts/observability/observability/">
+    <span class="title">下一页 »</span>
+    <span>可观测性</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <div class="tn-footer-line">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+    </div>
+</footer>
+<div class="tn-statusbar" aria-hidden="true">
+  <div class="tn-sb-group">
+    <span class="tn-sb-item tn-branch">git:(main)</span>
+    <span class="tn-sb-item tn-ok">✓ 0 errors</span>
+    <span class="tn-sb-item tn-warn">! 0 warnings</span>
+  </div>
+  <div class="tn-sb-group">
+    <span class="tn-sb-item">Ln 1, Col 1</span>
+    <span class="tn-sb-item">UTF-8</span>
+    <span class="tn-sb-item">LF</span>
+    <span class="tn-sb-item tn-lang">Markdown</span>
+    <span class="tn-sb-item tn-ok">✓ Prettier</span>
+  </div>
+</div>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>

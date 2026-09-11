@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto" data-theme="dark">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="index, follow">
+<title>Uniswap | Brian&#39;s Blog</title>
+<meta name="keywords" content="uniswap, defi">
+<meta name="description" content="Uniswap v1/v2 恒定乘积，v3 集中流动性，以及 v4 的架构变化">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/web3/uniswap/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css" integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#1a1b26">
+<meta name="msapplication-TileColor" content="#1a1b26">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/web3/uniswap/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+</noscript>
+<script>
+    if (localStorage.getItem("pref-theme") === "light") {
+        document.querySelector("html").dataset.theme = 'light';
+    }
+
+</script><link rel="preconnect" href="https://fonts.bunny.net">
+<link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
+<meta property="og:url" content="http://localhost:1313/posts/web3/uniswap/">
+  <meta property="og:site_name" content="Brian&#39;s Blog">
+  <meta property="og:title" content="Uniswap">
+  <meta property="og:description" content="Uniswap v1/v2 恒定乘积，v3 集中流动性，以及 v4 的架构变化">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2026-09-10T16:33:12+08:00">
+    <meta property="article:modified_time" content="2026-09-10T16:33:12+08:00">
+    <meta property="article:tag" content="Uniswap">
+    <meta property="article:tag" content="Defi">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Uniswap">
+  <meta name="twitter:description" content="Uniswap v1/v2 恒定乘积，v3 集中流动性，以及 v4 的架构变化">
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position":  1 ,
+      "name": "文章",
+      "item": "http://localhost:1313/posts/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  2 ,
+      "name": "Web3",
+      "item": "http://localhost:1313/posts/web3/"
+    }, 
+    {
+      "@type": "ListItem",
+      "position":  3 ,
+      "name": "Uniswap",
+      "item": "http://localhost:1313/posts/web3/uniswap/"
+    }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Uniswap",
+  "name": "Uniswap",
+  "description": "Uniswap v1/v2 恒定乘积，v3 集中流动性，以及 v4 的架构变化",
+  "keywords": [
+    "uniswap", "defi"
+  ],
+  "articleBody": "Uniswap Uniswap 是以太坊上 DeFi 的基石。它用 AMM（自动做市商）代替传统订单簿，让用户在没有中间做市商的情况下直接兑换代币。\n核心演进可以看成三步：\nv1 / v2：全区间恒定乘积 x * y = k v3：把流动性集中到指定价格区间 v4：AMM 算法基本不变，改的是合约架构（单体、闪电记账、hooks） Uniswap v1 / v2 v1 只允许 ETH / ERC20 组成交易对。v2 放开了限制，ERC20 / ERC20 也可以组 pair。\n兑换、加池、撤池都围绕同一个公式：\nx * y = k x、y 是池子里两种代币的储备，k 在一笔 swap 过程中保持不变（手续费会让 k 缓慢变大）。\n下面用一组贯穿的数字：\nx = 2000 y = 100 k = 2000 * 100 = 200000 总 LP = 1000 添加流动性 添加流动性前后要保持 x / y 的比例不变。想加 100 个 x，就必须同时加 5 个 y：\n100 / 2000 = 5 / 100 获得的 LP 数量取两侧份额的较小值：\nlp_x = (100 / 2000) * 1000 = 50 lp_y = (5 / 100) * 1000 = 50 lp = min(lp_x, lp_y) = 50 对应 v2 合约里的：\nliquidity = min( amount0 * totalSupply / reserve0, amount1 * totalSupply / reserve1 ) 首次添加流动性时还没有 totalSupply，公式换成：\nlp = sqrt(x * y) - MINIMUM_LIQUIDITY MINIMUM_LIQUIDITY 默认是 1000，会永久锁到 address(0)，避免池子被抽空后价格被任意操纵。\n加完后池子变成：\nx = 2100 y = 105 总 LP = 1050 兑换 兑换前后保持 k 不变，但协议会先从输入里抽走 0.3% 手续费。\n用户用 100 个 x 换 y：\n2100 * 105 = (2100 + 100 * (1 - 0.003)) * (105 - Δy) Δy ≈ 4.759 等价于合约里的 997 / 1000 算法：\namountInWithFee = 100 * 997 amountOut = amountInWithFee * 105 / (2100 * 1000 + amountInWithFee) ≈ 4.759 手续费留在池子里，所以实际 k 会略微增大，这就是 LP 的收益来源。\n移除流动性 销毁自己持有的 LP，按份额取回两种代币。假设用户有 100 LP，当时总供应 1000，池子 x = 2000、y = 100：\nx_out = 100 / 1000 * 2000 = 200 y_out = 100 / 1000 * 100 = 10 Uniswap v3 v2 的流动性均匀铺在 (0, +∞) 上，大部分永远用不上。v3 允许 LP 把流动性集中到自己选择的价格区间，同样的资金能提供更高的深度。\n价格被离散成 tick：\nprice(tick) = 1.0001 ^ tick tick ∈ [-887272, 887272] 每个 fee tier 对应一个 tickSpacing，流动性只能加在能被 tickSpacing 整除的 tick 上：\nfee tickSpacing 0.01% 1 0.05% 10 0.30% 60 1.00% 200 v3 不再发可替换的 ERC20 LP token，每个头寸是一张 NFT（tokenId），因为不同区间、不同手续费档位无法互相替代。\n添加流动性 区间内的虚拟流动性 L 和两种代币数量的关系：\n当前价格在 [P_a, P_b] 内： Δy = L * (√P - √P_a) Δx = L * (1/√P - 1/√P_b) 当前价格 \u003c P_a（区间在上方，只需要 x）： Δx = L * (1/√P_a - 1/√P_b) Δy = 0 当前价格 \u003e P_b（区间在下方，只需要 y）： Δy = L * (√P_b - √P_a) Δx = 0 链上用 sqrtPriceX96 = √P * 2^96 存价格，所以实际计算会多一个 Q96 = 2^96 的定点缩放：\nΔy = L * (sqrtPriceX96 - sqrtLowerX96) / Q96 Δx = L * Q96 * (sqrtUpperX96 - sqrtPriceX96) / (sqrtPriceX96 * sqrtUpperX96) 例子：\ntickSpacing = 60 currentTick = 0 # 当前价格 = 1 tickLower = -60 tickUpper = 60 amount0 = 100 sqrtPriceX96(-60) = 78990846045029531151608375685 sqrtPriceX96(0) = 79228162514264337593543950336 sqrtPriceX96(60) = 79466191966197645195421774832 由 Δx = 100 反解 L，再代入 Δy 公式，整数除法得到 Δy = 99。区间关于 P = 1 对称，实数计算下两种代币几乎相等；链上 floor 之后差 1 个 wei 量级的单位。\nSwap v3 的 swap 不再一次走完整条曲线，而是沿着 tick 一段一段走：\n确定方向：x → y（zeroForOne）还是 y → x 沿该方向找到下一个已初始化（有人挂过流动性）的 tick 用当前这段的 L 和上面的 Δx / Δy 公式，算出这段最多能换多少 输入在这段就耗尽：直接结束 还有剩余：跨过这个 tick，更新当前 L（加上 liquidityNet），继续下一段 跨 tick 时还要翻转该 tick 的 feeGrowthOutside，供后面计算区间内手续费用。\n移除流动性 和添加是同一套公式，只是方向相反。同样要看当前价格落在哪：\n在区间内： Δx = L * (1/√P - 1/√P_b) Δy = L * (√P - √P_a) 高于上限（只能取回 y）： Δy = L * (√P_b - √P_a) 低于下限（只能取回 x）： Δx = L * (1/√P_a - 1/√P_b) 价格已经走出区间后，头寸不再承担成交，但之前累计的手续费仍可以领取。\n手续费记账 v2 的手续费直接混进储备里，所有 LP 按份额均分。v3 的头寸区间不同，必须按「这段时间有没有在范围内」分别记账。分三层：\n层级 记什么 Pool feeGrowthGlobal0/1：全池每单位流动性累计的手续费 Tick feeGrowthOutside0/1：该 tick 外侧累计的手续费 Position 上次结算时的 feeGrowthInside 一个 [tickLower, tickUpper] 区间内部累计的手续费：\nfeeGrowthInside = feeGrowthGlobal - feeGrowthOutside(lower) - feeGrowthOutside(upper) outside 的含义取决于当前 tick 在该 tick 的哪一侧，跨 tick 时会翻转一次。头寸未领取的手续费：\nunclaimed = L * (feeGrowthInside_now - feeGrowthInside_last) Uniswap v4 v4 的 AMM 数学和 v3 一样，仍然是集中流动性 + tick。变化在合约架构，主要是三点。\n单体架构（Singleton） v3 每个 pool 单独部署一个合约。v4 把所有池子放进同一个 PoolManager，用\nPoolId = hash(currency0, currency1, fee, tickSpacing, hooks) 区分。少了一次次 CREATE2 部署，创建池子和跨池路由的 gas 都更低。\n闪电记账（Flash Accounting） v3 每一步都立刻 transfer ERC20。v4 在一次 lock / unlock 里只记余额 delta（用 transient storage），最后再统一 settle / take。中间的加池、swap、跨池操作可以互相抵消，少很多次代币转账。\n约束是：unlock 时所有 currency 的 delta 必须归零，否则 revert。\nHooks 每个池子可以绑定一个 hook 合约，在生命周期前后插入自定义逻辑，例如：\nbefore/afterInitialize before/afterSwap before/afterAddLiquidity / before/afterRemoveLiquidity before/afterDonate 动态手续费、内部限价单、自定义 oracle、挂钩稳定币曲线，都可以做在 hook 里，而不用分叉整个 AMM。\n",
+  "wordCount" : "2081",
+  "inLanguage": "zh",
+  "datePublished": "2026-09-10T16:33:12+08:00",
+  "dateModified": "2026-09-10T16:33:12+08:00",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "http://localhost:1313/posts/web3/uniswap/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Brian's Blog",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "http://localhost:1313/favicon.ico"
+    }
+  }
+}
+</script>
+</head>
+<body id="top">
+    <header class="header">
+    <nav class="header-nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg class="sun" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu" class="menu">
+            <li>
+                <a href="http://localhost:1313/posts/" title="Posts">
+                    <span>Posts</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="Archives">
+                    <span>Archives</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                    <span>Search</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <div class="tn-buffer-bar" aria-hidden="true">~/blog/posts/web3/uniswap/</div>
+  <header class="post-header">
+    <nav class="breadcrumbs" role="navigation" aria-label="Breadcrumb">
+            <a href="/">主页</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/">文章</a>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            <a href="/posts/web3/">Web3</a>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+        <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+</nav>
+    <h1 class="post-title entry-hint-parent">
+      Uniswap
+    </h1>
+    <div class="post-description">
+      Uniswap v1/v2 恒定乘积，v3 集中流动性，以及 v4 的架构变化
+    </div>
+    <div class="post-meta">
+
+<span title='2026-09-10 16:33:12 +0800 CST'>2026-09-10</span>&nbsp;·&nbsp;<span>5 分钟</span>
+
+</div>
+  </header> 
+  <div class="post-content md-content"><h1 id="uniswap">Uniswap<a hidden class="anchor" aria-hidden="true" href="#uniswap">#</a></h1>
+<p>Uniswap 是以太坊上 DeFi 的基石。它用 AMM（自动做市商）代替传统订单簿，让用户在没有中间做市商的情况下直接兑换代币。</p>
+<p>核心演进可以看成三步：</p>
+<ul>
+<li><strong>v1 / v2</strong>：全区间恒定乘积 <code>x * y = k</code></li>
+<li><strong>v3</strong>：把流动性集中到指定价格区间</li>
+<li><strong>v4</strong>：AMM 算法基本不变，改的是合约架构（单体、闪电记账、hooks）</li>
+</ul>
+<h2 id="uniswap-v1--v2">Uniswap v1 / v2<a hidden class="anchor" aria-hidden="true" href="#uniswap-v1--v2">#</a></h2>
+<p>v1 只允许 <code>ETH / ERC20</code> 组成交易对。v2 放开了限制，<code>ERC20 / ERC20</code> 也可以组 pair。</p>
+<p>兑换、加池、撤池都围绕同一个公式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">x * y = k
+</span></span></code></pre></div><p><code>x</code>、<code>y</code> 是池子里两种代币的储备，<code>k</code> 在一笔 swap 过程中保持不变（手续费会让 <code>k</code> 缓慢变大）。</p>
+<p>下面用一组贯穿的数字：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">x = 2000
+</span></span><span class="line"><span class="cl">y = 100
+</span></span><span class="line"><span class="cl">k = 2000 * 100 = 200000
+</span></span><span class="line"><span class="cl">总 LP = 1000
+</span></span></code></pre></div><h3 id="添加流动性">添加流动性<a hidden class="anchor" aria-hidden="true" href="#添加流动性">#</a></h3>
+<p>添加流动性前后要保持 <code>x / y</code> 的比例不变。想加 <code>100</code> 个 x，就必须同时加 <code>5</code> 个 y：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">100 / 2000 = 5 / 100
+</span></span></code></pre></div><p>获得的 LP 数量取两侧份额的较小值：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">lp_x = (100 / 2000) * 1000 = 50
+</span></span><span class="line"><span class="cl">lp_y = (5   / 100)  * 1000 = 50
+</span></span><span class="line"><span class="cl">lp    = min(lp_x, lp_y)     = 50
+</span></span></code></pre></div><p>对应 v2 合约里的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">liquidity = min(
+</span></span><span class="line"><span class="cl">  amount0 * totalSupply / reserve0,
+</span></span><span class="line"><span class="cl">  amount1 * totalSupply / reserve1
+</span></span><span class="line"><span class="cl">)
+</span></span></code></pre></div><p>首次添加流动性时还没有 <code>totalSupply</code>，公式换成：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">lp = sqrt(x * y) - MINIMUM_LIQUIDITY
+</span></span></code></pre></div><p><code>MINIMUM_LIQUIDITY</code> 默认是 <code>1000</code>，会永久锁到 <code>address(0)</code>，避免池子被抽空后价格被任意操纵。</p>
+<p>加完后池子变成：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">x = 2100
+</span></span><span class="line"><span class="cl">y = 105
+</span></span><span class="line"><span class="cl">总 LP = 1050
+</span></span></code></pre></div><h3 id="兑换">兑换<a hidden class="anchor" aria-hidden="true" href="#兑换">#</a></h3>
+<p>兑换前后保持 <code>k</code> 不变，但协议会先从输入里抽走 <strong>0.3%</strong> 手续费。</p>
+<p>用户用 <code>100</code> 个 x 换 y：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">2100 * 105 = (2100 + 100 * (1 - 0.003)) * (105 - Δy)
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Δy ≈ 4.759
+</span></span></code></pre></div><p>等价于合约里的 <code>997 / 1000</code> 算法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">amountInWithFee = 100 * 997
+</span></span><span class="line"><span class="cl">amountOut = amountInWithFee * 105 / (2100 * 1000 + amountInWithFee)
+</span></span><span class="line"><span class="cl">          ≈ 4.759
+</span></span></code></pre></div><p>手续费留在池子里，所以实际 <code>k</code> 会略微增大，这就是 LP 的收益来源。</p>
+<h3 id="移除流动性">移除流动性<a hidden class="anchor" aria-hidden="true" href="#移除流动性">#</a></h3>
+<p>销毁自己持有的 LP，按份额取回两种代币。假设用户有 <code>100</code> LP，当时总供应 <code>1000</code>，池子 <code>x = 2000</code>、<code>y = 100</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">x_out = 100 / 1000 * 2000 = 200
+</span></span><span class="line"><span class="cl">y_out = 100 / 1000 * 100  = 10
+</span></span></code></pre></div><h2 id="uniswap-v3">Uniswap v3<a hidden class="anchor" aria-hidden="true" href="#uniswap-v3">#</a></h2>
+<p>v2 的流动性均匀铺在 <code>(0, +∞)</code> 上，大部分永远用不上。v3 允许 LP 把流动性集中到自己选择的价格区间，同样的资金能提供更高的深度。</p>
+<p>价格被离散成 tick：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">price(tick) = 1.0001 ^ tick
+</span></span><span class="line"><span class="cl">tick ∈ [-887272, 887272]
+</span></span></code></pre></div><p>每个 fee tier 对应一个 <code>tickSpacing</code>，流动性只能加在能被 <code>tickSpacing</code> 整除的 tick 上：</p>
+<table>
+	<thead>
+			<tr>
+					<th>fee</th>
+					<th>tickSpacing</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>0.01%</td>
+					<td>1</td>
+			</tr>
+			<tr>
+					<td>0.05%</td>
+					<td>10</td>
+			</tr>
+			<tr>
+					<td>0.30%</td>
+					<td>60</td>
+			</tr>
+			<tr>
+					<td>1.00%</td>
+					<td>200</td>
+			</tr>
+	</tbody>
+</table>
+<p>v3 不再发可替换的 ERC20 LP token，每个头寸是一张 NFT（<code>tokenId</code>），因为不同区间、不同手续费档位无法互相替代。</p>
+<h3 id="添加流动性-1">添加流动性<a hidden class="anchor" aria-hidden="true" href="#添加流动性-1">#</a></h3>
+<p>区间内的虚拟流动性 <code>L</code> 和两种代币数量的关系：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">当前价格在 [P_a, P_b] 内：
+</span></span><span class="line"><span class="cl">  Δy = L * (√P   - √P_a)
+</span></span><span class="line"><span class="cl">  Δx = L * (1/√P - 1/√P_b)
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">当前价格 &lt; P_a（区间在上方，只需要 x）：
+</span></span><span class="line"><span class="cl">  Δx = L * (1/√P_a - 1/√P_b)
+</span></span><span class="line"><span class="cl">  Δy = 0
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">当前价格 &gt; P_b（区间在下方，只需要 y）：
+</span></span><span class="line"><span class="cl">  Δy = L * (√P_b - √P_a)
+</span></span><span class="line"><span class="cl">  Δx = 0
+</span></span></code></pre></div><p>链上用 <code>sqrtPriceX96 = √P * 2^96</code> 存价格，所以实际计算会多一个 <code>Q96 = 2^96</code> 的定点缩放：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Δy = L * (sqrtPriceX96 - sqrtLowerX96) / Q96
+</span></span><span class="line"><span class="cl">Δx = L * Q96 * (sqrtUpperX96 - sqrtPriceX96) / (sqrtPriceX96 * sqrtUpperX96)
+</span></span></code></pre></div><p>例子：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">tickSpacing = 60
+</span></span><span class="line"><span class="cl">currentTick = 0          # 当前价格 = 1
+</span></span><span class="line"><span class="cl">tickLower   = -60
+</span></span><span class="line"><span class="cl">tickUpper   = 60
+</span></span><span class="line"><span class="cl">amount0     = 100
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">sqrtPriceX96(-60) = 78990846045029531151608375685
+</span></span><span class="line"><span class="cl">sqrtPriceX96(0)   = 79228162514264337593543950336
+</span></span><span class="line"><span class="cl">sqrtPriceX96(60)  = 79466191966197645195421774832
+</span></span></code></pre></div><p>由 <code>Δx = 100</code> 反解 <code>L</code>，再代入 <code>Δy</code> 公式，整数除法得到 <code>Δy = 99</code>。区间关于 <code>P = 1</code> 对称，实数计算下两种代币几乎相等；链上 floor 之后差 1 个 wei 量级的单位。</p>
+<h3 id="swap">Swap<a hidden class="anchor" aria-hidden="true" href="#swap">#</a></h3>
+<p>v3 的 swap 不再一次走完整条曲线，而是沿着 tick 一段一段走：</p>
+<ol>
+<li>确定方向：<code>x → y</code>（<code>zeroForOne</code>）还是 <code>y → x</code></li>
+<li>沿该方向找到下一个<strong>已初始化</strong>（有人挂过流动性）的 tick</li>
+<li>用当前这段的 <code>L</code> 和上面的 <code>Δx / Δy</code> 公式，算出这段最多能换多少</li>
+<li>输入在这段就耗尽：直接结束</li>
+<li>还有剩余：跨过这个 tick，更新当前 <code>L</code>（加上 <code>liquidityNet</code>），继续下一段</li>
+</ol>
+<p>跨 tick 时还要翻转该 tick 的 <code>feeGrowthOutside</code>，供后面计算区间内手续费用。</p>
+<h3 id="移除流动性-1">移除流动性<a hidden class="anchor" aria-hidden="true" href="#移除流动性-1">#</a></h3>
+<p>和添加是同一套公式，只是方向相反。同样要看当前价格落在哪：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">在区间内：
+</span></span><span class="line"><span class="cl">  Δx = L * (1/√P - 1/√P_b)
+</span></span><span class="line"><span class="cl">  Δy = L * (√P   - √P_a)
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">高于上限（只能取回 y）：
+</span></span><span class="line"><span class="cl">  Δy = L * (√P_b - √P_a)
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">低于下限（只能取回 x）：
+</span></span><span class="line"><span class="cl">  Δx = L * (1/√P_a - 1/√P_b)
+</span></span></code></pre></div><p>价格已经走出区间后，头寸不再承担成交，但之前累计的手续费仍可以领取。</p>
+<h3 id="手续费记账">手续费记账<a hidden class="anchor" aria-hidden="true" href="#手续费记账">#</a></h3>
+<p>v2 的手续费直接混进储备里，所有 LP 按份额均分。v3 的头寸区间不同，必须按「这段时间有没有在范围内」分别记账。分三层：</p>
+<table>
+	<thead>
+			<tr>
+					<th>层级</th>
+					<th>记什么</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Pool</td>
+					<td><code>feeGrowthGlobal0/1</code>：全池每单位流动性累计的手续费</td>
+			</tr>
+			<tr>
+					<td>Tick</td>
+					<td><code>feeGrowthOutside0/1</code>：该 tick <strong>外侧</strong>累计的手续费</td>
+			</tr>
+			<tr>
+					<td>Position</td>
+					<td>上次结算时的 <code>feeGrowthInside</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>一个 <code>[tickLower, tickUpper]</code> 区间内部累计的手续费：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">feeGrowthInside = feeGrowthGlobal
+</span></span><span class="line"><span class="cl">                - feeGrowthOutside(lower)
+</span></span><span class="line"><span class="cl">                - feeGrowthOutside(upper)
+</span></span></code></pre></div><p><code>outside</code> 的含义取决于当前 tick 在该 tick 的哪一侧，跨 tick 时会翻转一次。头寸未领取的手续费：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">unclaimed = L * (feeGrowthInside_now - feeGrowthInside_last)
+</span></span></code></pre></div><h2 id="uniswap-v4">Uniswap v4<a hidden class="anchor" aria-hidden="true" href="#uniswap-v4">#</a></h2>
+<p>v4 的 AMM 数学和 v3 一样，仍然是集中流动性 + tick。变化在合约架构，主要是三点。</p>
+<h3 id="单体架构singleton">单体架构（Singleton）<a hidden class="anchor" aria-hidden="true" href="#单体架构singleton">#</a></h3>
+<p>v3 每个 pool 单独部署一个合约。v4 把所有池子放进同一个 <code>PoolManager</code>，用</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">PoolId = hash(currency0, currency1, fee, tickSpacing, hooks)
+</span></span></code></pre></div><p>区分。少了一次次 <code>CREATE2</code> 部署，创建池子和跨池路由的 gas 都更低。</p>
+<h3 id="闪电记账flash-accounting">闪电记账（Flash Accounting）<a hidden class="anchor" aria-hidden="true" href="#闪电记账flash-accounting">#</a></h3>
+<p>v3 每一步都立刻 <code>transfer</code> ERC20。v4 在一次 <code>lock</code> / <code>unlock</code> 里只记余额 delta（用 transient storage），最后再统一 <code>settle</code> / <code>take</code>。中间的加池、swap、跨池操作可以互相抵消，少很多次代币转账。</p>
+<p>约束是：<code>unlock</code> 时所有 currency 的 delta 必须归零，否则 revert。</p>
+<h3 id="hooks">Hooks<a hidden class="anchor" aria-hidden="true" href="#hooks">#</a></h3>
+<p>每个池子可以绑定一个 hook 合约，在生命周期前后插入自定义逻辑，例如：</p>
+<ul>
+<li><code>before/afterInitialize</code></li>
+<li><code>before/afterSwap</code></li>
+<li><code>before/afterAddLiquidity</code> / <code>before/afterRemoveLiquidity</code></li>
+<li><code>before/afterDonate</code></li>
+</ul>
+<p>动态手续费、内部限价单、自定义 oracle、挂钩稳定币曲线，都可以做在 hook 里，而不用分叉整个 AMM。</p>
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+      <li><a href="http://localhost:1313/tags/uniswap/">Uniswap</a></li>
+      <li><a href="http://localhost:1313/tags/defi/">Defi</a></li>
+    </ul>
+<nav class="paginav">
+  <a class="next" href="http://localhost:1313/posts/etcd/etcd-read-write-process/">
+    <span class="title">下一页 »</span>
+    <span>Etcd 读写流程</span>
+  </a>
+</nav>
+
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+    <div class="tn-footer-line">
+        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+    <span>
+        Powered by
+        <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+    </div>
+</footer>
+<div class="tn-statusbar" aria-hidden="true">
+  <div class="tn-sb-group">
+    <span class="tn-sb-item tn-branch">git:(main)</span>
+    <span class="tn-sb-item tn-ok">✓ 0 errors</span>
+    <span class="tn-sb-item tn-warn">! 0 warnings</span>
+  </div>
+  <div class="tn-sb-group">
+    <span class="tn-sb-item">Ln 1, Col 1</span>
+    <span class="tn-sb-item">UTF-8</span>
+    <span class="tn-sb-item">LF</span>
+    <span class="tn-sb-item tn-lang">Markdown</span>
+    <span class="tn-sb-item tn-ok">✓ Prettier</span>
+  </div>
+</div>
+<a href="#top" id="top-link" class="top-link hidden" aria-label="go to top" title="Go to Top (Alt + G)" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevrons-up">
+        <polyline points="17 11 12 6 7 11"></polyline>
+        <polyline points="17 18 12 13 7 18"></polyline>
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu');
+    if (menu) {
+        const scrollPosition = localStorage.getItem("menu-scroll-position");
+        if (scrollPosition) {
+            menu.scrollLeft = parseInt(scrollPosition, 10);
+        }
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+</script>
+<script>
+    var toplink = document.getElementById("top-link");
+    window.onscroll = function () {
+        const scrollThreshold = window.innerHeight;
+        if (document.body.scrollTop > scrollThreshold || document.documentElement.scrollTop > scrollThreshold) {
+            toplink.classList.remove("hidden");
+        } else {
+            toplink.classList.add("hidden");
+        }
+    };
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        const html = document.querySelector("html");
+        if (html.dataset.theme === "dark") {
+            html.dataset.theme = 'light';
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            html.dataset.theme = 'dark';
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+</script>
+<script>
+    document.querySelectorAll('pre > code').forEach((codeblock) => {
+        const container = codeblock.parentNode.parentNode;
+
+        const copybutton = document.createElement('button');
+        copybutton.classList.add('copy-code');
+        copybutton.innerHTML = '复制';
+
+        function copyingDone() {
+            copybutton.innerHTML = '已复制！';
+            setTimeout(() => {
+                copybutton.innerHTML = '复制';
+            }, 2000);
+        }
+
+        copybutton.addEventListener('click', (cb) => {
+            if ('clipboard' in navigator) {
+                navigator.clipboard.writeText(codeblock.textContent);
+                copyingDone();
+                return;
+            }
+
+            const range = document.createRange();
+            range.selectNodeContents(codeblock);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            try {
+                document.execCommand('copy');
+                copyingDone();
+            } catch (e) { };
+            selection.removeRange(range);
+        });
+
+        if (container.classList.contains("highlight")) {
+            container.appendChild(copybutton);
+        } else if (container.parentNode.firstChild == container) {
+        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
+            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
+        } else {
+            codeblock.parentNode.appendChild(copybutton);
+        }
+    });
+</script>
+</body>
+
+</html>
