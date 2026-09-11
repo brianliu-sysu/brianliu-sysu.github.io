@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>高性能 on Brian&#39;s Blog</title>
-    <link>http://localhost:1313/posts/high-performance/</link>
+    <link>https://blog.brianliu.top/posts/high-performance/</link>
     <description>Recent content in 高性能 on Brian&#39;s Blog</description>
     <generator>Hugo</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Wed, 09 Sep 2026 10:08:23 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/posts/high-performance/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 11 Sep 2026 14:25:47 +0800</lastBuildDate>
+    <atom:link href="https://blog.brianliu.top/posts/high-performance/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>高性能服务</title>
-      <link>http://localhost:1313/posts/high-performance/high-performance/</link>
+      <link>https://blog.brianliu.top/posts/high-performance/high-performance/</link>
       <pubDate>Mon, 07 Sep 2026 00:00:00 +0800</pubDate>
-      <guid>http://localhost:1313/posts/high-performance/high-performance/</guid>
+      <guid>https://blog.brianliu.top/posts/high-performance/high-performance/</guid>
       <description>从可维护性、性能、稳定性三个维度看高性能服务</description>
     </item>
   </channel>

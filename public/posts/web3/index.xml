@@ -2,21 +2,18 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Web3 on Brian&#39;s Blog</title>
-    <link>http://localhost:1313/posts/web3/</link>
+    <link>https://blog.brianliu.top/posts/web3/</link>
     <description>Recent content in Web3 on Brian&#39;s Blog</description>
     <generator>Hugo</generator>
     <language>zh-cn</language>
-    <lastBuildDate>Thu, 10 Sep 2026 16:33:12 +0800</lastBuildDate>
-    <atom:link href="http://localhost:1313/posts/web3/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 11 Sep 2026 11:38:35 +0800</lastBuildDate>
+    <atom:link href="https://blog.brianliu.top/posts/web3/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Uniswap</title>
-      <link>http://localhost:1313/posts/web3/uniswap/</link>
+      <link>https://blog.brianliu.top/posts/web3/uniswap/</link>
       <pubDate>Thu, 10 Sep 2026 16:33:12 +0800</pubDate>
-      <guid>http://localhost:1313/posts/web3/uniswap/</guid>
-      <description>&lt;h1 id=&#34;uniswap&#34;&gt;Uniswap&lt;/h1&gt;
-&lt;p&gt;Uniswap 是区块链的Defi的基石，它的AMM机制允许用户在没有中间做市商的情况下，自由的兑换代币&lt;/p&gt;
-&lt;h2 id=&#34;uniswap-v1v2&#34;&gt;Uniswap v1/v2&lt;/h2&gt;
-&lt;p&gt;Uniswap v1 只支持 ETH 和 ERC20 组成pair对，uniswap v2 开放了限制 ERC20 和 ERC20 也可以组成pair对。&lt;/p&gt;</description>
+      <guid>https://blog.brianliu.top/posts/web3/uniswap/</guid>
+      <description>Uniswap v1/v2 恒定乘积，v3 集中流动性，以及 v4 的架构变化</description>
     </item>
   </channel>
 </rss>

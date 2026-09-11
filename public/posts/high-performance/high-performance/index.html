@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="auto" data-theme="dark">
 
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<head><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
@@ -9,16 +9,16 @@
 <meta name="keywords" content="arch">
 <meta name="description" content="从可维护性、性能、稳定性三个维度看高性能服务">
 <meta name="author" content="">
-<link rel="canonical" href="http://localhost:1313/posts/high-performance/high-performance/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css" integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as="style">
-<link rel="icon" href="http://localhost:1313/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
-<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
-<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<link rel="canonical" href="https://blog.brianliu.top/posts/high-performance/high-performance/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.55ca43b9c4296fe42ceca587f199fb43d3308ace79b0569bf3354cff3f34369a.css" integrity="sha256-VcpDucQpb&#43;Qs7KWH8Zn7Q9Mwis55sFab8zVM/z80Npo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://blog.brianliu.top/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://blog.brianliu.top/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://blog.brianliu.top/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://blog.brianliu.top/apple-touch-icon.png">
+<link rel="mask-icon" href="https://blog.brianliu.top/safari-pinned-tab.svg">
 <meta name="theme-color" content="#1a1b26">
 <meta name="msapplication-TileColor" content="#1a1b26">
-<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/high-performance/high-performance/">
+<link rel="alternate" hreflang="zh" href="https://blog.brianliu.top/posts/high-performance/high-performance/">
 <noscript>
     <style>
         #theme-toggle,
@@ -35,7 +35,7 @@
 
 </script><link rel="preconnect" href="https://fonts.bunny.net">
 <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
-<meta property="og:url" content="http://localhost:1313/posts/high-performance/high-performance/">
+<meta property="og:url" content="https://blog.brianliu.top/posts/high-performance/high-performance/">
   <meta property="og:site_name" content="Brian&#39;s Blog">
   <meta property="og:title" content="高性能服务">
   <meta property="og:description" content="从可维护性、性能、稳定性三个维度看高性能服务">
@@ -43,7 +43,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
     <meta property="article:published_time" content="2026-09-07T00:00:00+08:00">
-    <meta property="article:modified_time" content="2026-09-09T10:08:23+08:00">
+    <meta property="article:modified_time" content="2026-09-11T14:25:47+08:00">
     <meta property="article:tag" content="Arch">
 
   <meta name="twitter:card" content="summary">
@@ -60,19 +60,19 @@
       "@type": "ListItem",
       "position":  1 ,
       "name": "文章",
-      "item": "http://localhost:1313/posts/"
+      "item": "https://blog.brianliu.top/posts/"
     }, 
     {
       "@type": "ListItem",
       "position":  2 ,
       "name": "高性能",
-      "item": "http://localhost:1313/posts/high-performance/"
+      "item": "https://blog.brianliu.top/posts/high-performance/"
     }, 
     {
       "@type": "ListItem",
       "position":  3 ,
       "name": "高性能服务",
-      "item": "http://localhost:1313/posts/high-performance/high-performance/"
+      "item": "https://blog.brianliu.top/posts/high-performance/high-performance/"
     }
   ]
 }
@@ -87,21 +87,21 @@
   "keywords": [
     "arch"
   ],
-  "articleBody": "高性能服务 开发的服务是否具备高性能，是衡量一个程序员功力的基本指标。\n开发一个服务一般需要从几个方面来思考：\n代码的可维护性：逻辑架构是否清晰，是否易扩展，出现错误是否易排查。 服务的性能：并发架构、IO 模型、数据库、缓存。 服务的稳定性：限流、熔断、隔离、服务降级、发布流程。 代码的可维护性 架构设计 架构设计是服务可维护性和可扩展性的基石，也是高性能的基础。一般有几个设计原则：\n依赖接口，不依赖具体实现（便于测试，便于后续扩展）。 高内聚低耦合，对外提供统一且最小化的接口。 架构设计要符合当前团队规模和业务目标，不要超前设计。 高性能 高性能是衡量一个服务是否满足用户需求的重要指标。Go 提供了很多工具来帮助我们找到系统的性能瓶颈：\npprof trace benchmark 改善系统性能的一般流程为：\n设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果 主要从几个方面来定位问题：\nCPU 内存 IO 服务的稳定性 提供稳定的服务是一个服务是否成功的重要标识。为了提供稳定的服务，我们需要考虑下面的问题：\n设置服务的最大访问容量，超出容量的部分直接报错（限流算法包含：滑动窗口、漏桶、令牌桶等）。 下游服务出现报错要如何处理（限流、熔断、降级）。 对核心业务进行隔离，防止其他非核心业务出问题导致服务崩溃（数据隔离、业务隔离）。 ",
-  "wordCount" : "525",
+  "articleBody": "高性能服务 服务能不能长期扛住线上流量，是衡量工程师功力的基本指标。这里的「高性能」不只是延迟和吞吐，通常要同时过三关：\n可维护性：逻辑架构是否清晰、是否易扩展、出错是否易排查。 性能：并发架构、IO 模型、数据库、缓存。 稳定性：限流、熔断、隔离、降级、发布。 缺任何一维，另外两维都会很快被拖垮：架构乱了就找不到热点；没有限流，性能再好也会被打穿。\n代码的可维护性 可维护性决定了后面两维还能不能改得动。热点定位、限流策略、降级开关，最后都要落回代码结构上。\n架构设计 架构是可维护性和可扩展性的基石，也是性能优化的前提。几条常用原则：\n依赖接口，不依赖具体实现。存储、RPC、缓存都可以替换，单测也不用绑死真实依赖。 高内聚、低耦合。模块边界清楚，对外只暴露统一且尽量小的接口。 匹配当前团队规模和业务目标。不要为了「以后可能」提前上微服务、消息队列或过度抽象。 出错是否易排查，同样属于可维护性：错误要能归到明确的模块和调用链上，而不是散落在一堆隐式副作用里。日志、指标、追踪是另一篇文章的主题，但架构上必须先留出观察点。\n服务的性能 性能要先能量，再谈优化。没有目标的优化，最后往往只是把代码改复杂。\nGo 里常用的定位工具：\npprof：CPU、堆、goroutine、block/mutex trace：调度、GC、syscall 的时间线 benchmark：局部函数的回归对比 改善性能的一般流程：\n设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果 目标要可验证，例如 P99 延迟、QPS、内存上限。改完必须用同样的指标证明有效，否则不算做完。\n定位时先看三类资源，再决定动哪一层：\n资源 常见信号 优先检查 CPU 打满、P99 升高 热点函数、锁竞争、多余序列化 内存 RSS 持续涨、频繁 GC 泄漏、大对象、无界缓存 IO 等待时间长、goroutine 堆积 下游超时、数据库、磁盘、网络 真正动手时，优化面通常落在这四处。\n并发架构 并发模型决定了机器能被吃满，还是在自己锁自己。\ngoroutine 不是越多越好，要对齐下游容量，用 worker 池或信号量把并发度卡住。 共享状态能无锁就无锁；必须加锁时，缩小临界区，避免一把全局锁串行化所有请求。 注意惊群、重复计算、无界 channel，这些比「少写几行代码」更容易把延迟打爆。 IO 模型 服务耗时大部分不在本地计算，而在等网络和磁盘。\n能批量就不要一条条打下游；能 pipeline / 并发的请求，不要串行排好再发。 给所有下游调用设超时和连接池上限，避免慢调用占满 goroutine。 同步阻塞不是原罪，无界的等待才是。先把调用链上的等待点摸清，再决定要不要异步化。 数据库 数据库经常是第一个真实瓶颈。\n先看慢查询和索引，再谈分库分表。 避免 N+1 和在循环里访问 DB；能一次取回的不要拆成很多次。 连接池大小要和实例数、数据库 max_connections 一起算，池开太大等于把压打到库上。 缓存 缓存是放大性能的杠杆，也会放大故障。\n先确认瓶颈在读、在计算，再加缓存。缓存解决的是重复访问，不是错误的数据模型。 提前想好穿透、击穿、雪崩：空值缓存、互斥回源、过期时间打散。 缓存和 DB 的一致性策略要写清楚，不要默认「最终一致就行」。 服务的稳定性 稳定是服务是否成功的标志。性能优化解决的是「正常负载下有多快」，稳定性解决的是「异常负载下会不会死」。\n限流 先保护自己。给服务设一个最大容量，超出的请求直接失败，而不是把队列和线程吃满再一起超时。\n常见算法：\n滑动窗口：实现简单，适合做接口级计数。 漏桶：流出速率恒定，能把突发削平。 令牌桶：允许一定突发，更贴近真实流量。 限流阈值要按实例容量来，而不是拍一个全局数字；扩容之后阈值也要跟着变。\n熔断与降级 下游出错时，继续重试只会把故障放大。\n熔断：连续失败或错误率超过阈值，就暂时断开，过一段时间再放少量探测。 降级：核心链路保持，非核心功能关停或走兜底数据，例如推荐失败就返回默认列表。 限流管的是「进来多少」，熔断管的是「出去还打不打」，降级管的是「打失败了用户还能不能用」。\n隔离 核心业务不要和非核心业务抢同一份资源。\n业务隔离：核心接口和非核心接口分开部署或分开限流。 数据隔离：核心表、核心缓存不要被离线任务或后台导出打满。 资源隔离：线程池、连接池、队列按依赖拆开，一个慢下游不能抽干整个进程。 隔离的目标不是永不故障，而是故障半径可控。\n发布 很多线上事故不是流量打出来的，是发出来的。\n先灰度再全量，观察错误率、延迟、核心业务指标。 发布必须能快速回滚，回滚路径要事先演练，而不是出了问题再找人。 配置变更按发布对待：同样需要灰度、审计和回滚。 ",
+  "wordCount" : "1815",
   "inLanguage": "zh",
   "datePublished": "2026-09-07T00:00:00+08:00",
-  "dateModified": "2026-09-09T10:08:23+08:00",
+  "dateModified": "2026-09-11T14:25:47+08:00",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "http://localhost:1313/posts/high-performance/high-performance/"
+    "@id": "https://blog.brianliu.top/posts/high-performance/high-performance/"
   },
   "publisher": {
     "@type": "Organization",
     "name": "Brian's Blog",
     "logo": {
       "@type": "ImageObject",
-      "url": "http://localhost:1313/favicon.ico"
+      "url": "https://blog.brianliu.top/favicon.ico"
     }
   }
 }
@@ -111,7 +111,7 @@
     <header class="header">
     <nav class="header-nav">
         <div class="logo">
-            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <a href="https://blog.brianliu.top/" accesskey="h" title="brian (Alt + H)">brian</a>
             <div class="logo-switches">
                 <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
@@ -137,17 +137,17 @@
         </div>
         <ul id="menu" class="menu">
             <li>
-                <a href="http://localhost:1313/posts/" title="Posts">
+                <a href="https://blog.brianliu.top/posts/" title="Posts">
                     <span>Posts</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/archives/" title="Archives">
+                <a href="https://blog.brianliu.top/archives/" title="Archives">
                     <span>Archives</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                <a href="https://blog.brianliu.top/search/" title="Search (Alt &#43; /)" accesskey=/>
                     <span>Search</span>
                 </a>
             </li>
@@ -184,61 +184,141 @@
     </div>
     <div class="post-meta">
 
-<span title='2026-09-07 00:00:00 +0800 CST'>2026-09-07</span>&nbsp;·&nbsp;<span>2 分钟</span>
+<span title='2026-09-07 00:00:00 +0800 CST'>2026-09-07</span>&nbsp;·&nbsp;<span>4 分钟</span>
 
 </div>
   </header> 
   <div class="post-content md-content"><h1 id="高性能服务">高性能服务<a hidden class="anchor" aria-hidden="true" href="#高性能服务">#</a></h1>
-<p>开发的服务是否具备高性能，是衡量一个程序员功力的基本指标。</p>
-<p>开发一个服务一般需要从几个方面来思考：</p>
+<p>服务能不能长期扛住线上流量，是衡量工程师功力的基本指标。这里的「高性能」不只是延迟和吞吐，通常要同时过三关：</p>
 <ul>
-<li><strong>代码的可维护性</strong>：逻辑架构是否清晰，是否易扩展，出现错误是否易排查。</li>
-<li><strong>服务的性能</strong>：并发架构、IO 模型、数据库、缓存。</li>
-<li><strong>服务的稳定性</strong>：限流、熔断、隔离、服务降级、发布流程。</li>
+<li><strong>可维护性</strong>：逻辑架构是否清晰、是否易扩展、出错是否易排查。</li>
+<li><strong>性能</strong>：并发架构、IO 模型、数据库、缓存。</li>
+<li><strong>稳定性</strong>：限流、熔断、隔离、降级、发布。</li>
 </ul>
+<p>缺任何一维，另外两维都会很快被拖垮：架构乱了就找不到热点；没有限流，性能再好也会被打穿。</p>
 <h2 id="代码的可维护性">代码的可维护性<a hidden class="anchor" aria-hidden="true" href="#代码的可维护性">#</a></h2>
+<p>可维护性决定了后面两维还能不能改得动。热点定位、限流策略、降级开关，最后都要落回代码结构上。</p>
 <h3 id="架构设计">架构设计<a hidden class="anchor" aria-hidden="true" href="#架构设计">#</a></h3>
-<p>架构设计是服务可维护性和可扩展性的基石，也是高性能的基础。一般有几个设计原则：</p>
+<p>架构是可维护性和可扩展性的基石，也是性能优化的前提。几条常用原则：</p>
 <ul>
-<li>依赖接口，不依赖具体实现（便于测试，便于后续扩展）。</li>
-<li>高内聚低耦合，对外提供统一且最小化的接口。</li>
-<li>架构设计要符合当前团队规模和业务目标，不要超前设计。</li>
+<li><strong>依赖接口，不依赖具体实现</strong>。存储、RPC、缓存都可以替换，单测也不用绑死真实依赖。</li>
+<li><strong>高内聚、低耦合</strong>。模块边界清楚，对外只暴露统一且尽量小的接口。</li>
+<li><strong>匹配当前团队规模和业务目标</strong>。不要为了「以后可能」提前上微服务、消息队列或过度抽象。</li>
 </ul>
-<h2 id="高性能">高性能<a hidden class="anchor" aria-hidden="true" href="#高性能">#</a></h2>
-<p>高性能是衡量一个服务是否满足用户需求的重要指标。Go 提供了很多工具来帮助我们找到系统的性能瓶颈：</p>
+<p>出错是否易排查，同样属于可维护性：错误要能归到明确的模块和调用链上，而不是散落在一堆隐式副作用里。日志、指标、追踪是另一篇文章的主题，但架构上必须先留出观察点。</p>
+<h2 id="服务的性能">服务的性能<a hidden class="anchor" aria-hidden="true" href="#服务的性能">#</a></h2>
+<p>性能要先能量，再谈优化。没有目标的优化，最后往往只是把代码改复杂。</p>
+<p>Go 里常用的定位工具：</p>
 <ul>
-<li><code>pprof</code></li>
-<li><code>trace</code></li>
-<li><code>benchmark</code></li>
+<li><code>pprof</code>：CPU、堆、goroutine、block/mutex</li>
+<li><code>trace</code>：调度、GC、syscall 的时间线</li>
+<li><code>benchmark</code>：局部函数的回归对比</li>
 </ul>
-<p>改善系统性能的一般流程为：</p>
+<p>改善性能的一般流程：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">设定目标 → 定位问题 → 分析原因 → 解决方案 → 测试结果
-</span></span></code></pre></div><p>主要从几个方面来定位问题：</p>
+</span></span></code></pre></div><p>目标要可验证，例如 P99 延迟、QPS、内存上限。改完必须用同样的指标证明有效，否则不算做完。</p>
+<p>定位时先看三类资源，再决定动哪一层：</p>
+<table>
+	<thead>
+			<tr>
+					<th>资源</th>
+					<th>常见信号</th>
+					<th>优先检查</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>CPU</td>
+					<td>打满、P99 升高</td>
+					<td>热点函数、锁竞争、多余序列化</td>
+			</tr>
+			<tr>
+					<td>内存</td>
+					<td>RSS 持续涨、频繁 GC</td>
+					<td>泄漏、大对象、无界缓存</td>
+			</tr>
+			<tr>
+					<td>IO</td>
+					<td>等待时间长、goroutine 堆积</td>
+					<td>下游超时、数据库、磁盘、网络</td>
+			</tr>
+	</tbody>
+</table>
+<p>真正动手时，优化面通常落在这四处。</p>
+<h3 id="并发架构">并发架构<a hidden class="anchor" aria-hidden="true" href="#并发架构">#</a></h3>
+<p>并发模型决定了机器能被吃满，还是在自己锁自己。</p>
 <ul>
-<li>CPU</li>
-<li>内存</li>
-<li>IO</li>
+<li>goroutine 不是越多越好，要对齐下游容量，用 worker 池或信号量把并发度卡住。</li>
+<li>共享状态能无锁就无锁；必须加锁时，缩小临界区，避免一把全局锁串行化所有请求。</li>
+<li>注意惊群、重复计算、无界 channel，这些比「少写几行代码」更容易把延迟打爆。</li>
+</ul>
+<h3 id="io-模型">IO 模型<a hidden class="anchor" aria-hidden="true" href="#io-模型">#</a></h3>
+<p>服务耗时大部分不在本地计算，而在等网络和磁盘。</p>
+<ul>
+<li>能批量就不要一条条打下游；能 pipeline / 并发的请求，不要串行排好再发。</li>
+<li>给所有下游调用设超时和连接池上限，避免慢调用占满 goroutine。</li>
+<li>同步阻塞不是原罪，无界的等待才是。先把调用链上的等待点摸清，再决定要不要异步化。</li>
+</ul>
+<h3 id="数据库">数据库<a hidden class="anchor" aria-hidden="true" href="#数据库">#</a></h3>
+<p>数据库经常是第一个真实瓶颈。</p>
+<ul>
+<li>先看慢查询和索引，再谈分库分表。</li>
+<li>避免 N+1 和在循环里访问 DB；能一次取回的不要拆成很多次。</li>
+<li>连接池大小要和实例数、数据库 max_connections 一起算，池开太大等于把压打到库上。</li>
+</ul>
+<h3 id="缓存">缓存<a hidden class="anchor" aria-hidden="true" href="#缓存">#</a></h3>
+<p>缓存是放大性能的杠杆，也会放大故障。</p>
+<ul>
+<li>先确认瓶颈在读、在计算，再加缓存。缓存解决的是重复访问，不是错误的数据模型。</li>
+<li>提前想好穿透、击穿、雪崩：空值缓存、互斥回源、过期时间打散。</li>
+<li>缓存和 DB 的一致性策略要写清楚，不要默认「最终一致就行」。</li>
 </ul>
 <h2 id="服务的稳定性">服务的稳定性<a hidden class="anchor" aria-hidden="true" href="#服务的稳定性">#</a></h2>
-<p>提供稳定的服务是一个服务是否成功的重要标识。为了提供稳定的服务，我们需要考虑下面的问题：</p>
+<p>稳定是服务是否成功的标志。性能优化解决的是「正常负载下有多快」，稳定性解决的是「异常负载下会不会死」。</p>
+<h3 id="限流">限流<a hidden class="anchor" aria-hidden="true" href="#限流">#</a></h3>
+<p>先保护自己。给服务设一个最大容量，超出的请求直接失败，而不是把队列和线程吃满再一起超时。</p>
+<p>常见算法：</p>
 <ul>
-<li>设置服务的最大访问容量，超出容量的部分直接报错（限流算法包含：滑动窗口、漏桶、令牌桶等）。</li>
-<li>下游服务出现报错要如何处理（限流、熔断、降级）。</li>
-<li>对核心业务进行隔离，防止其他非核心业务出问题导致服务崩溃（数据隔离、业务隔离）。</li>
+<li><strong>滑动窗口</strong>：实现简单，适合做接口级计数。</li>
+<li><strong>漏桶</strong>：流出速率恒定，能把突发削平。</li>
+<li><strong>令牌桶</strong>：允许一定突发，更贴近真实流量。</li>
+</ul>
+<p>限流阈值要按实例容量来，而不是拍一个全局数字；扩容之后阈值也要跟着变。</p>
+<h3 id="熔断与降级">熔断与降级<a hidden class="anchor" aria-hidden="true" href="#熔断与降级">#</a></h3>
+<p>下游出错时，继续重试只会把故障放大。</p>
+<ul>
+<li><strong>熔断</strong>：连续失败或错误率超过阈值，就暂时断开，过一段时间再放少量探测。</li>
+<li><strong>降级</strong>：核心链路保持，非核心功能关停或走兜底数据，例如推荐失败就返回默认列表。</li>
+</ul>
+<p>限流管的是「进来多少」，熔断管的是「出去还打不打」，降级管的是「打失败了用户还能不能用」。</p>
+<h3 id="隔离">隔离<a hidden class="anchor" aria-hidden="true" href="#隔离">#</a></h3>
+<p>核心业务不要和非核心业务抢同一份资源。</p>
+<ul>
+<li><strong>业务隔离</strong>：核心接口和非核心接口分开部署或分开限流。</li>
+<li><strong>数据隔离</strong>：核心表、核心缓存不要被离线任务或后台导出打满。</li>
+<li><strong>资源隔离</strong>：线程池、连接池、队列按依赖拆开，一个慢下游不能抽干整个进程。</li>
+</ul>
+<p>隔离的目标不是永不故障，而是故障半径可控。</p>
+<h3 id="发布">发布<a hidden class="anchor" aria-hidden="true" href="#发布">#</a></h3>
+<p>很多线上事故不是流量打出来的，是发出来的。</p>
+<ul>
+<li>先灰度再全量，观察错误率、延迟、核心业务指标。</li>
+<li>发布必须能快速回滚，回滚路径要事先演练，而不是出了问题再找人。</li>
+<li>配置变更按发布对待：同样需要灰度、审计和回滚。</li>
 </ul>
 
   </div>
 
   <footer class="post-footer">
     <ul class="post-tags">
-      <li><a href="http://localhost:1313/tags/arch/">Arch</a></li>
+      <li><a href="https://blog.brianliu.top/tags/arch/">Arch</a></li>
     </ul>
 <nav class="paginav">
-  <a class="prev" href="http://localhost:1313/posts/etcd/etcd-read-write-process/">
+  <a class="prev" href="https://blog.brianliu.top/posts/etcd/etcd-read-write-process/">
     <span class="title">« 上一页</span>
     <span>Etcd 读写流程</span>
   </a>
-  <a class="next" href="http://localhost:1313/posts/observability/observability/">
+  <a class="next" href="https://blog.brianliu.top/posts/observability/observability/">
     <span class="title">下一页 »</span>
     <span>可观测性</span>
   </a>
@@ -250,7 +330,7 @@
     
 <footer class="footer">
     <div class="tn-footer-line">
-        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+        <span>&copy; 2026 <a href="https://blog.brianliu.top/">Brian&#39;s Blog</a></span>
     <span>
         Powered by
         <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &

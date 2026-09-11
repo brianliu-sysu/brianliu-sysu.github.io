@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="auto" data-theme="dark">
 
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<head><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
@@ -9,16 +9,16 @@
 <meta name="keywords" content="arch">
 <meta name="description" content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现">
 <meta name="author" content="">
-<link rel="canonical" href="http://localhost:1313/posts/observability/observability/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css" integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as="style">
-<link rel="icon" href="http://localhost:1313/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
-<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
-<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<link rel="canonical" href="https://blog.brianliu.top/posts/observability/observability/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.55ca43b9c4296fe42ceca587f199fb43d3308ace79b0569bf3354cff3f34369a.css" integrity="sha256-VcpDucQpb&#43;Qs7KWH8Zn7Q9Mwis55sFab8zVM/z80Npo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://blog.brianliu.top/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://blog.brianliu.top/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://blog.brianliu.top/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://blog.brianliu.top/apple-touch-icon.png">
+<link rel="mask-icon" href="https://blog.brianliu.top/safari-pinned-tab.svg">
 <meta name="theme-color" content="#1a1b26">
 <meta name="msapplication-TileColor" content="#1a1b26">
-<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/observability/observability/">
+<link rel="alternate" hreflang="zh" href="https://blog.brianliu.top/posts/observability/observability/">
 <noscript>
     <style>
         #theme-toggle,
@@ -35,7 +35,7 @@
 
 </script><link rel="preconnect" href="https://fonts.bunny.net">
 <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
-<meta property="og:url" content="http://localhost:1313/posts/observability/observability/">
+<meta property="og:url" content="https://blog.brianliu.top/posts/observability/observability/">
   <meta property="og:site_name" content="Brian&#39;s Blog">
   <meta property="og:title" content="可观测性">
   <meta property="og:description" content="Logging / Metrics / Tracing，以及一个最小 Tracing 实现">
@@ -43,7 +43,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
     <meta property="article:published_time" content="2026-08-27T00:00:00+08:00">
-    <meta property="article:modified_time" content="2026-09-09T10:08:23+08:00">
+    <meta property="article:modified_time" content="2026-09-11T14:25:47+08:00">
     <meta property="article:tag" content="Arch">
 
   <meta name="twitter:card" content="summary">
@@ -60,19 +60,19 @@
       "@type": "ListItem",
       "position":  1 ,
       "name": "文章",
-      "item": "http://localhost:1313/posts/"
+      "item": "https://blog.brianliu.top/posts/"
     }, 
     {
       "@type": "ListItem",
       "position":  2 ,
       "name": "可观测性",
-      "item": "http://localhost:1313/posts/observability/"
+      "item": "https://blog.brianliu.top/posts/observability/"
     }, 
     {
       "@type": "ListItem",
       "position":  3 ,
       "name": "可观测性",
-      "item": "http://localhost:1313/posts/observability/observability/"
+      "item": "https://blog.brianliu.top/posts/observability/observability/"
     }
   ]
 }
@@ -87,21 +87,21 @@
   "keywords": [
     "arch"
   ],
-  "articleBody": "可观测性 可观测性是衡量软件部署到生产环境后能否被有效运维，以及能否快速发现问题的一个重要指标。\n可观测性主要包含三大支柱：\nLogging：记录软件运行过程中重要事件的离散数据。 Metrics：定时采集的时间序列数据，用于反映系统状态和变化趋势。 Tracing：追踪一次请求所经过的完整流程。 Tracing 的简单实现 trace.go // trace.go package trace import ( \"context\" \"crypto/rand\" \"encoding/hex\" \"fmt\" \"time\" ) type TraceID [16]byte type SpanID [8]byte type Span struct { TraceID TraceID SpanID SpanID ParentSpanID SpanID Name string StartTime time.Time EndTime time.Time } type spanKey struct{} func newTraceID() TraceID { var id TraceID _, _ = rand.Read(id[:]) return id } func newSpanID() SpanID { var id SpanID _, _ = rand.Read(id[:]) return id } func (id TraceID) String() string { return hex.EncodeToString(id[:]) } func (id SpanID) String() string { return hex.EncodeToString(id[:]) } func spanFromContext(ctx context.Context) (*Span, bool) { span, ok := ctx.Value(spanKey{}).(*Span) return span, ok } func Start(ctx context.Context, name string) (context.Context, *Span) { var traceID TraceID var spanID SpanID if span, ok := spanFromContext(ctx); ok { traceID = span.TraceID spanID = span.SpanID } else { traceID = newTraceID() } span := \u0026Span{ TraceID: traceID, SpanID: newSpanID(), ParentSpanID: spanID, Name: name, StartTime: time.Now(), } ctx = context.WithValue(ctx, spanKey{}, span) return ctx, span } func (s *Span) End() { s.EndTime = time.Now() fmt.Printf( \"trace_id=%s span_id=%s parent_span_id=%s name=%q duration=%s\\n\", s.TraceID.String(), s.SpanID.String(), s.ParentSpanID.String(), s.Name, s.EndTime.Sub(s.StartTime), ) } main.go // main.go package main import ( \"context\" \"time\" \"your-path/trace\" ) func main() { ctx := context.Background() ctx, span := trace.Start(ctx, \"main\") defer span.End() queryDB(ctx) } func queryDB(ctx context.Context) { ctx, span := trace.Start(ctx, \"queryDB\") defer span.End() time.Sleep(100 * time.Millisecond) callRedis(ctx) } func callRedis(ctx context.Context) { _, span := trace.Start(ctx, \"redis.GET\") defer span.End() time.Sleep(50 * time.Millisecond) } 输出示例 trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=\"redis.GET\" duration=50.382959ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=\"queryDB\" duration=150.616125ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=\"main\" duration=150.621167ms 生产环境中的 Tracing 上面只是一个简单的本地实现。生产环境中的 Tracing 通常还应包含：\nConnector（连接器）：用于连接远程收集器。 Exporter（导出器）：定义导出协议（如 OTLP、gRPC 等），以及采用单条发送还是批量发送。 Sampler（采样器）：定义采样频率。 ",
-  "wordCount" : "532",
+  "articleBody": "可观测性 可观测性衡量的是：服务上线之后，出了问题能不能被看见、被定位、被复盘。监控告诉你「机器还活着」，可观测性要回答的是「这次请求为什么慢、错在哪一段」。\n三大支柱：\nLogging：运行过程中重要事件的离散记录，回答「发生了什么」。 Metrics：定时采集的时间序列，回答「现在是什么趋势」。 Tracing：一次请求穿过的完整调用链，回答「慢在哪一段」。 三柱要能对上同一件事：Metrics 发现异常，Tracing 把请求拆到具体 span，Logging 给出那个点上的上下文。对不齐的话，三套系统只是三份账单。\nLogging 日志适合记录不可聚合的事实：错误堆栈、关键状态跳转、一次请求的入参摘要。\n用结构化字段（key=value 或 JSON），不要把全部信息塞进一句自然语言。 每条日志带上 request_id / trace_id，才能从一条错误跳到整条链路。 级别要分清：error 可告警，info 可复盘，debug 默认不要在生产全量开。 日志基数高、存储贵，不要用它替代 Metrics。user_id、完整请求体这类字段尤其要克制。 Metrics 指标适合看趋势和做告警：低基数标签 + 可加总的数值。\n线上最常用的几类：\n流量：QPS、并发 错误：错误率、按错误码分类的计数 延迟：P99 / P999，不要只看平均值 饱和度：队列长度、连接池、goroutine、CPU / 内存 标签基数必须受控。interface、code、instance 可以；user_id、url 原文会把时序库打爆。\nMetrics 能告诉你「支付接口 P99 从 80ms 变成 800ms」，但说不清是 DB、Redis 还是下游 RPC。这就是 Tracing 的位置。\nTracing 一次请求会穿过多层函数、多个下游。Trace 把这次请求收成一棵 span 树：\n同一个 TraceID 标识整次请求 每个 Span 有自己的 SpanID、耗时和名称 ParentSpanID 把 span 连成树 当前 span 放进 context，往下游传，子调用才能挂到正确的父节点上 下面是一个只覆盖进程内传播的最小实现：不采样、不导出，End() 时直接打印。\ntrace.go // trace.go package trace import ( \"context\" \"crypto/rand\" \"encoding/hex\" \"fmt\" \"time\" ) type TraceID [16]byte type SpanID [8]byte type Span struct { TraceID TraceID SpanID SpanID ParentSpanID SpanID Name string StartTime time.Time EndTime time.Time } type spanKey struct{} func newTraceID() TraceID { var id TraceID _, _ = rand.Read(id[:]) return id } func newSpanID() SpanID { var id SpanID _, _ = rand.Read(id[:]) return id } func (id TraceID) String() string { return hex.EncodeToString(id[:]) } func (id SpanID) String() string { return hex.EncodeToString(id[:]) } func spanFromContext(ctx context.Context) (*Span, bool) { span, ok := ctx.Value(spanKey{}).(*Span) return span, ok } func Start(ctx context.Context, name string) (context.Context, *Span) { var traceID TraceID var spanID SpanID if span, ok := spanFromContext(ctx); ok { traceID = span.TraceID spanID = span.SpanID } else { traceID = newTraceID() } span := \u0026Span{ TraceID: traceID, SpanID: newSpanID(), ParentSpanID: spanID, Name: name, StartTime: time.Now(), } ctx = context.WithValue(ctx, spanKey{}, span) return ctx, span } func (s *Span) End() { s.EndTime = time.Now() fmt.Printf( \"trace_id=%s span_id=%s parent_span_id=%s name=%q duration=%s\\n\", s.TraceID.String(), s.SpanID.String(), s.ParentSpanID.String(), s.Name, s.EndTime.Sub(s.StartTime), ) } Start 的规则很简单：context 里已有 span，就继承它的 TraceID，并把它的 SpanID 当作父节点；没有则新开一条 trace。根 span 的 ParentSpanID 是零值。\nmain.go // main.go package main import ( \"context\" \"time\" \"your-path/trace\" ) func main() { ctx := context.Background() ctx, span := trace.Start(ctx, \"main\") defer span.End() queryDB(ctx) } func queryDB(ctx context.Context) { ctx, span := trace.Start(ctx, \"queryDB\") defer span.End() time.Sleep(100 * time.Millisecond) callRedis(ctx) } func callRedis(ctx context.Context) { _, span := trace.Start(ctx, \"redis.GET\") defer span.End() time.Sleep(50 * time.Millisecond) } 调用关系是 main → queryDB → redis.GET。queryDB 和 callRedis 都必须把传入的 ctx 交给 Start，否则子 span 会变成一条新的、互不相干的 trace。\n输出示例 trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=\"redis.GET\" duration=50.382959ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=\"queryDB\" duration=150.616125ms trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=\"main\" duration=150.621167ms 几点可以直接从输出读出来：\n三条记录同一个 trace_id，说明还在一次请求里。 parent_span_id 串起来就是 main → queryDB → redis.GET。根 span 的 parent 是全 0。 打印顺序是子 span 先结束：defer 后进先出。 queryDB 的 duration ≈ 150ms，等于自己的 100ms 加上 Redis 的 50ms。父 span 的耗时包含子调用。 生产环境中的 Tracing 上面的实现只在本进程 printf。生产环境至少还要补三块，也就是 SDK 里常见的三层：\nSampler（采样器）：决定这条 trace 记不记。全量采集成本很高，通常按比例或按错误/慢请求强制留下。采样必须在根 span 上决定，并随 context 传下去，否则同一条请求会缺段。 Exporter（导出器）：用什么协议发出去（OTLP / gRPC / HTTP），以及一条条发还是批量发。批量能省网络，进程退出前要能 flush。 Connector（连接器）：接到哪一个收集器。本机 agent、集群 collector、还是厂商入口，决定的是导出的目的地，不是 span 模型本身。 还有一件最小实现故意没做的事：跨服务传播。出进程时要把 trace_id / span_id 放进 RPC / HTTP header（例如 W3C traceparent），对端再解出来继续 Start。否则链路会在服务边界断开，Metrics 看到的慢接口和 Tracing 对不上。\n",
+  "wordCount" : "1681",
   "inLanguage": "zh",
   "datePublished": "2026-08-27T00:00:00+08:00",
-  "dateModified": "2026-09-09T10:08:23+08:00",
+  "dateModified": "2026-09-11T14:25:47+08:00",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "http://localhost:1313/posts/observability/observability/"
+    "@id": "https://blog.brianliu.top/posts/observability/observability/"
   },
   "publisher": {
     "@type": "Organization",
     "name": "Brian's Blog",
     "logo": {
       "@type": "ImageObject",
-      "url": "http://localhost:1313/favicon.ico"
+      "url": "https://blog.brianliu.top/favicon.ico"
     }
   }
 }
@@ -111,7 +111,7 @@
     <header class="header">
     <nav class="header-nav">
         <div class="logo">
-            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <a href="https://blog.brianliu.top/" accesskey="h" title="brian (Alt + H)">brian</a>
             <div class="logo-switches">
                 <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
@@ -137,17 +137,17 @@
         </div>
         <ul id="menu" class="menu">
             <li>
-                <a href="http://localhost:1313/posts/" title="Posts">
+                <a href="https://blog.brianliu.top/posts/" title="Posts">
                     <span>Posts</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/archives/" title="Archives">
+                <a href="https://blog.brianliu.top/archives/" title="Archives">
                     <span>Archives</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                <a href="https://blog.brianliu.top/search/" title="Search (Alt &#43; /)" accesskey=/>
                     <span>Search</span>
                 </a>
             </li>
@@ -184,19 +184,47 @@
     </div>
     <div class="post-meta">
 
-<span title='2026-08-27 00:00:00 +0800 CST'>2026-08-27</span>&nbsp;·&nbsp;<span>2 分钟</span>
+<span title='2026-08-27 00:00:00 +0800 CST'>2026-08-27</span>&nbsp;·&nbsp;<span>4 分钟</span>
 
 </div>
   </header> 
   <div class="post-content md-content"><h1 id="可观测性">可观测性<a hidden class="anchor" aria-hidden="true" href="#可观测性">#</a></h1>
-<p>可观测性是衡量软件部署到生产环境后能否被有效运维，以及能否快速发现问题的一个重要指标。</p>
-<p>可观测性主要包含三大支柱：</p>
+<p>可观测性衡量的是：服务上线之后，出了问题能不能被看见、被定位、被复盘。监控告诉你「机器还活着」，可观测性要回答的是「这次请求为什么慢、错在哪一段」。</p>
+<p>三大支柱：</p>
 <ul>
-<li><strong>Logging</strong>：记录软件运行过程中重要事件的离散数据。</li>
-<li><strong>Metrics</strong>：定时采集的时间序列数据，用于反映系统状态和变化趋势。</li>
-<li><strong>Tracing</strong>：追踪一次请求所经过的完整流程。</li>
+<li><strong>Logging</strong>：运行过程中重要事件的离散记录，回答「发生了什么」。</li>
+<li><strong>Metrics</strong>：定时采集的时间序列，回答「现在是什么趋势」。</li>
+<li><strong>Tracing</strong>：一次请求穿过的完整调用链，回答「慢在哪一段」。</li>
 </ul>
-<h2 id="tracing-的简单实现">Tracing 的简单实现<a hidden class="anchor" aria-hidden="true" href="#tracing-的简单实现">#</a></h2>
+<p>三柱要能对上同一件事：Metrics 发现异常，Tracing 把请求拆到具体 span，Logging 给出那个点上的上下文。对不齐的话，三套系统只是三份账单。</p>
+<h2 id="logging">Logging<a hidden class="anchor" aria-hidden="true" href="#logging">#</a></h2>
+<p>日志适合记录不可聚合的事实：错误堆栈、关键状态跳转、一次请求的入参摘要。</p>
+<ul>
+<li>用结构化字段（<code>key=value</code> 或 JSON），不要把全部信息塞进一句自然语言。</li>
+<li>每条日志带上 <code>request_id</code> / <code>trace_id</code>，才能从一条错误跳到整条链路。</li>
+<li>级别要分清：<code>error</code> 可告警，<code>info</code> 可复盘，<code>debug</code> 默认不要在生产全量开。</li>
+<li>日志基数高、存储贵，不要用它替代 Metrics。<code>user_id</code>、完整请求体这类字段尤其要克制。</li>
+</ul>
+<h2 id="metrics">Metrics<a hidden class="anchor" aria-hidden="true" href="#metrics">#</a></h2>
+<p>指标适合看趋势和做告警：低基数标签 + 可加总的数值。</p>
+<p>线上最常用的几类：</p>
+<ul>
+<li><strong>流量</strong>：QPS、并发</li>
+<li><strong>错误</strong>：错误率、按错误码分类的计数</li>
+<li><strong>延迟</strong>：P99 / P999，不要只看平均值</li>
+<li><strong>饱和度</strong>：队列长度、连接池、goroutine、CPU / 内存</li>
+</ul>
+<p>标签基数必须受控。<code>interface</code>、<code>code</code>、<code>instance</code> 可以；<code>user_id</code>、<code>url</code> 原文会把时序库打爆。</p>
+<p>Metrics 能告诉你「支付接口 P99 从 80ms 变成 800ms」，但说不清是 DB、Redis 还是下游 RPC。这就是 Tracing 的位置。</p>
+<h2 id="tracing">Tracing<a hidden class="anchor" aria-hidden="true" href="#tracing">#</a></h2>
+<p>一次请求会穿过多层函数、多个下游。Trace 把这次请求收成一棵 span 树：</p>
+<ul>
+<li>同一个 <code>TraceID</code> 标识整次请求</li>
+<li>每个 <code>Span</code> 有自己的 <code>SpanID</code>、耗时和名称</li>
+<li><code>ParentSpanID</code> 把 span 连成树</li>
+<li>当前 span 放进 <code>context</code>，往下游传，子调用才能挂到正确的父节点上</li>
+</ul>
+<p>下面是一个只覆盖进程内传播的最小实现：不采样、不导出，<code>End()</code> 时直接打印。</p>
 <h3 id="tracego"><code>trace.go</code><a hidden class="anchor" aria-hidden="true" href="#tracego">#</a></h3>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// trace.go</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">trace</span><span class="w">
@@ -287,7 +315,8 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">s</span><span class="p">.</span><span class="nx">EndTime</span><span class="p">.</span><span class="nf">Sub</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">StartTime</span><span class="p">),</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></div><h3 id="maingo"><code>main.go</code><a hidden class="anchor" aria-hidden="true" href="#maingo">#</a></h3>
+</span></span></span></code></pre></div><p><code>Start</code> 的规则很简单：context 里已有 span，就继承它的 <code>TraceID</code>，并把它的 <code>SpanID</code> 当作父节点；没有则新开一条 trace。根 span 的 <code>ParentSpanID</code> 是零值。</p>
+<h3 id="maingo"><code>main.go</code><a hidden class="anchor" aria-hidden="true" href="#maingo">#</a></h3>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// main.go</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
@@ -321,26 +350,35 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">time</span><span class="p">.</span><span class="nf">Sleep</span><span class="p">(</span><span class="mi">50</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Millisecond</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></div><h3 id="输出示例">输出示例<a hidden class="anchor" aria-hidden="true" href="#输出示例">#</a></h3>
+</span></span></span></code></pre></div><p>调用关系是 <code>main → queryDB → redis.GET</code>。<code>queryDB</code> 和 <code>callRedis</code> 都必须把传入的 <code>ctx</code> 交给 <code>Start</code>，否则子 span 会变成一条新的、互不相干的 trace。</p>
+<h3 id="输出示例">输出示例<a hidden class="anchor" aria-hidden="true" href="#输出示例">#</a></h3>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=ac2457ed96cda12a parent_span_id=6390a0de25c1605f name=&#34;redis.GET&#34; duration=50.382959ms
 </span></span><span class="line"><span class="cl">trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=6390a0de25c1605f parent_span_id=a0acf62459855909 name=&#34;queryDB&#34; duration=150.616125ms
 </span></span><span class="line"><span class="cl">trace_id=f13ab1e98bfe04d070ba0c2c6c21d082 span_id=a0acf62459855909 parent_span_id=0000000000000000 name=&#34;main&#34; duration=150.621167ms
-</span></span></code></pre></div><h2 id="生产环境中的-tracing">生产环境中的 Tracing<a hidden class="anchor" aria-hidden="true" href="#生产环境中的-tracing">#</a></h2>
-<p>上面只是一个简单的本地实现。生产环境中的 Tracing 通常还应包含：</p>
+</span></span></code></pre></div><p>几点可以直接从输出读出来：</p>
 <ul>
-<li><strong>Connector（连接器）</strong>：用于连接远程收集器。</li>
-<li><strong>Exporter（导出器）</strong>：定义导出协议（如 OTLP、gRPC 等），以及采用单条发送还是批量发送。</li>
-<li><strong>Sampler（采样器）</strong>：定义采样频率。</li>
+<li>三条记录同一个 <code>trace_id</code>，说明还在一次请求里。</li>
+<li><code>parent_span_id</code> 串起来就是 <code>main → queryDB → redis.GET</code>。根 span 的 parent 是全 0。</li>
+<li>打印顺序是子 span 先结束：<code>defer</code> 后进先出。</li>
+<li><code>queryDB</code> 的 duration ≈ 150ms，等于自己的 100ms 加上 Redis 的 50ms。父 span 的耗时包含子调用。</li>
 </ul>
+<h2 id="生产环境中的-tracing">生产环境中的 Tracing<a hidden class="anchor" aria-hidden="true" href="#生产环境中的-tracing">#</a></h2>
+<p>上面的实现只在本进程 <code>printf</code>。生产环境至少还要补三块，也就是 SDK 里常见的三层：</p>
+<ul>
+<li><strong>Sampler（采样器）</strong>：决定这条 trace 记不记。全量采集成本很高，通常按比例或按错误/慢请求强制留下。采样必须在根 span 上决定，并随 context 传下去，否则同一条请求会缺段。</li>
+<li><strong>Exporter（导出器）</strong>：用什么协议发出去（OTLP / gRPC / HTTP），以及一条条发还是批量发。批量能省网络，进程退出前要能 flush。</li>
+<li><strong>Connector（连接器）</strong>：接到哪一个收集器。本机 agent、集群 collector、还是厂商入口，决定的是导出的目的地，不是 span 模型本身。</li>
+</ul>
+<p>还有一件最小实现故意没做的事：跨服务传播。出进程时要把 <code>trace_id</code> / <code>span_id</code> 放进 RPC / HTTP header（例如 W3C <code>traceparent</code>），对端再解出来继续 <code>Start</code>。否则链路会在服务边界断开，Metrics 看到的慢接口和 Tracing 对不上。</p>
 
   </div>
 
   <footer class="post-footer">
     <ul class="post-tags">
-      <li><a href="http://localhost:1313/tags/arch/">Arch</a></li>
+      <li><a href="https://blog.brianliu.top/tags/arch/">Arch</a></li>
     </ul>
 <nav class="paginav">
-  <a class="prev" href="http://localhost:1313/posts/high-performance/high-performance/">
+  <a class="prev" href="https://blog.brianliu.top/posts/high-performance/high-performance/">
     <span class="title">« 上一页</span>
     <span>高性能服务</span>
   </a>
@@ -352,7 +390,7 @@
     
 <footer class="footer">
     <div class="tn-footer-line">
-        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+        <span>&copy; 2026 <a href="https://blog.brianliu.top/">Brian&#39;s Blog</a></span>
     <span>
         Powered by
         <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &

@@ -20,6 +20,13 @@ noClasses = false
 lineNos = false
 tabWidth = 2
 
+[markup.goldmark.extensions.passthrough]
+enable = true
+
+[markup.goldmark.extensions.passthrough.delimiters]
+block = [['\[', '\]'], ['$$', '$$']]
+inline = [['\(', '\)']]
+
 [params]
 env = "production"
 defaultTheme = "dark"

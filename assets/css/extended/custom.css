@@ -875,3 +875,15 @@ a.tn-tab:hover {
   color: var(--tertiary);
   padding: 8px 0 0;
 }
+
+/* KaTeX: inherit theme color, allow wide formulas to scroll */
+.katex {
+  color: var(--content);
+  font-size: 1.05em;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.15em 0;
+  margin: 1em 0;
+}

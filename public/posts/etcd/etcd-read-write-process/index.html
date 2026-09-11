@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh" dir="auto" data-theme="dark">
 
-<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<head><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="index, follow">
@@ -9,16 +9,16 @@
 <meta name="keywords" content="etcd">
 <meta name="description" content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply">
 <meta name="author" content="">
-<link rel="canonical" href="http://localhost:1313/posts/etcd/etcd-read-write-process/">
-<link crossorigin="anonymous" href="/assets/css/stylesheet.ee79a02c74aef6dbec575f5626fe70965ceff620181d0ff9eade6f54f617aa1c.css" integrity="sha256-7nmgLHSu9tvsV19WJv5wllzv9iAYHQ/56t5vVPYXqhw=" rel="preload stylesheet" as="style">
-<link rel="icon" href="http://localhost:1313/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
-<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
-<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<link rel="canonical" href="https://blog.brianliu.top/posts/etcd/etcd-read-write-process/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.55ca43b9c4296fe42ceca587f199fb43d3308ace79b0569bf3354cff3f34369a.css" integrity="sha256-VcpDucQpb&#43;Qs7KWH8Zn7Q9Mwis55sFab8zVM/z80Npo=" rel="preload stylesheet" as="style">
+<link rel="icon" href="https://blog.brianliu.top/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="https://blog.brianliu.top/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://blog.brianliu.top/favicon-32x32.png">
+<link rel="apple-touch-icon" href="https://blog.brianliu.top/apple-touch-icon.png">
+<link rel="mask-icon" href="https://blog.brianliu.top/safari-pinned-tab.svg">
 <meta name="theme-color" content="#1a1b26">
 <meta name="msapplication-TileColor" content="#1a1b26">
-<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/etcd/etcd-read-write-process/">
+<link rel="alternate" hreflang="zh" href="https://blog.brianliu.top/posts/etcd/etcd-read-write-process/">
 <noscript>
     <style>
         #theme-toggle,
@@ -35,7 +35,7 @@
 
 </script><link rel="preconnect" href="https://fonts.bunny.net">
 <link href="https://fonts.bunny.net/css?family=jetbrains-mono:400,400i,500,600,700" rel="stylesheet">
-<meta property="og:url" content="http://localhost:1313/posts/etcd/etcd-read-write-process/">
+<meta property="og:url" content="https://blog.brianliu.top/posts/etcd/etcd-read-write-process/">
   <meta property="og:site_name" content="Brian&#39;s Blog">
   <meta property="og:title" content="Etcd 读写流程">
   <meta property="og:description" content="etcd 读写路径：KVServer、MVCC、Raft 提案与 apply">
@@ -43,7 +43,7 @@
   <meta property="og:type" content="article">
     <meta property="article:section" content="posts">
     <meta property="article:published_time" content="2026-09-08T17:48:50+08:00">
-    <meta property="article:modified_time" content="2026-09-09T10:08:23+08:00">
+    <meta property="article:modified_time" content="2026-09-11T14:25:47+08:00">
     <meta property="article:tag" content="Etcd">
 
   <meta name="twitter:card" content="summary">
@@ -60,19 +60,19 @@
       "@type": "ListItem",
       "position":  1 ,
       "name": "文章",
-      "item": "http://localhost:1313/posts/"
+      "item": "https://blog.brianliu.top/posts/"
     }, 
     {
       "@type": "ListItem",
       "position":  2 ,
       "name": "etcd",
-      "item": "http://localhost:1313/posts/etcd/"
+      "item": "https://blog.brianliu.top/posts/etcd/"
     }, 
     {
       "@type": "ListItem",
       "position":  3 ,
       "name": "Etcd 读写流程",
-      "item": "http://localhost:1313/posts/etcd/etcd-read-write-process/"
+      "item": "https://blog.brianliu.top/posts/etcd/etcd-read-write-process/"
     }
   ]
 }
@@ -87,21 +87,21 @@
   "keywords": [
     "etcd"
   ],
-  "articleBody": "etcd 读写流程 etcd的应用非常广泛，从服务发现到分布式锁，而且随着k8s成为容器编排领域的绝对霸主，etcd也成为云原生的存储基石。\n读流程 client 发起一个key的读请求 服务收到请求后，先进入KVserver模块，因为etcd提供了丰富的监控指标，KVserver会根据访问的服务名称的方法，将请求发往不同的处理器 之后进入MVCC模块，这个模块包含两个模块：treeIndex和 boltdb 先在treeIndex中根据key，找到要访问的版本号，如果没有找到直接报错返回 etcd有两种读模式：串性读和线性读 如果是串性读，直接进行下一步 如果是线性读，先从leader获取commitedIndex，如果commitedIndex \u003c version 进入下一步，如果否等到满足前面的条件再进行下一步 根据版本号在buffer中查找，找到数据直接返回，没有找打再从boltdb中查找 写流程 client 发起一个key的写请求 服务收到请求后，先进入quota模块，判断当前数据库是否还有空间，没有空间之间返回 在进入KVserver模块，先进行一些校验 commited Index - applied Index \u003e 5000, 如果大于5000，说明之前有大量数据还在处理中，报错 token 是否合法 包大小是否合法 KVserver发起提案并提交给raft模块，leader 应用本地log并写入WAL，同时把请求发送给follower，如果收到超过半数的follower的答复，进入apply流程 为了幂等，etcd保存了一个constitient Index, 用来表示事务是否已经应用 先将数据写入treeIndex， treeIndex保存 key 和对应的version信息（包含创建 version，当前version，修改次数和历史version列表） 获取到要写入的version后，将version作为key，value包含要写入的key，value信息 ",
-  "wordCount" : "752",
+  "articleBody": "etcd 读写流程 etcd 用在服务发现、分布式锁，以及 Kubernetes 的集群状态存储。读写都要过同一套模块，只是读尽量不写 Raft 日志，写必须走共识：\ngRPC KV → KVServer → 读：线性读等待（可选）→ MVCC → 写：quota / 校验 → Raft propose → commit → apply → MVCC → MVCC = 内存 treeIndex + BoltDB treeIndex 用 key 查 revision；BoltDB 用 revision 当 key 存真正的 value。中间还有一层 write buffer，刚 apply、还没刷盘的数据先从这里读。\n读流程 默认是线性读。可串行化读跳过 Raft，更快，但可能读到旧数据。\nclient 对某个 key 发起 Range / Get。 请求进 KVServer。gRPC 按方法分到不同 handler（Range、Put、Txn…），顺带打监控。 先区分读模式，再进 MVCC（原文把 treeIndex 查找放在线性读等待之前，顺序反了）： 可串行化读（serializable）：不和 leader 对齐，直接读本节点当前状态。follower 上可能落后于集群。 线性读（linearizable，默认）：向 leader 做 ReadIndex，拿到此刻的 committedIndex，然后等到本节点 appliedIndex \u003e= 这个 index。保证读到的是这条读请求开始之前已经 commit 的全部写入。这里比的是 Raft index，不是 MVCC 的 version。 进入 MVCC。treeIndex 用 key 找到对应 revision（创建 revision、当前 revision、修改次数、历史 revision 列表）： 指定的 revision 已被 compact：返回错误。 key 不存在：返回空结果，不是报错。 拿着 revision 先查 buffer，命中直接返回；没有再回 BoltDB。 线性读的代价是一次和 leader 的对齐，以及可能的短暂等待。所以 watch、大量本地读有时会显式开 serializable。\n写流程 写一定要进 Raft。本节点 apply 完成，client 才收到成功。\nclient 发起 Put / Delete / Txn。 quota：看 BoltDB 是否已经摸到空间上限。超了直接返回，不再提案，避免把盘写爆。 进 KVServer，提案前做几项校验： committedIndex - appliedIndex \u003e 5000：前面堆积了太多还没 apply 的日志，拒绝新提案（ErrTooManyRequests），避免缺口继续拉大。 token / 权限是否合法。 包是否超过 MaxRequestBytes。 KVServer 把请求打成 Raft 提案： leader 追加本地 log 并写 WAL。 同时复制给 follower。 超过半数确认之后才 commit，然后进入 apply。append 和 apply 不是一步：过半之前只是写了日志，状态机还没变。 apply 要幂等。etcd 在 backend 里记 consistentIndex（已应用到状态机的 Raft index）。重启或重复 apply 时，index \u003c= consistentIndex 的条目直接跳过。 真正改数据（同一笔 backend 事务里）： 分配新的 revision，以 revision 为 key 写入 BoltDB，value 是用户的 key/value 以及创建 revision、mod revision、version。 更新内存 treeIndex：key → 这串 version 元数据。 把 consistentIndex 写成当前这条 Raft index。 所以一次成功的写，对外可见的顺序是：多数派 commit → apply 进 MVCC → 后续线性读能看到。只在 leader 本地 WAL 里、还没过半的数据，读路径看不到。\n",
+  "wordCount" : "1199",
   "inLanguage": "zh",
   "datePublished": "2026-09-08T17:48:50+08:00",
-  "dateModified": "2026-09-09T10:08:23+08:00",
+  "dateModified": "2026-09-11T14:25:47+08:00",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "http://localhost:1313/posts/etcd/etcd-read-write-process/"
+    "@id": "https://blog.brianliu.top/posts/etcd/etcd-read-write-process/"
   },
   "publisher": {
     "@type": "Organization",
     "name": "Brian's Blog",
     "logo": {
       "@type": "ImageObject",
-      "url": "http://localhost:1313/favicon.ico"
+      "url": "https://blog.brianliu.top/favicon.ico"
     }
   }
 }
@@ -111,7 +111,7 @@
     <header class="header">
     <nav class="header-nav">
         <div class="logo">
-            <a href="http://localhost:1313/" accesskey="h" title="brian (Alt + H)">brian</a>
+            <a href="https://blog.brianliu.top/" accesskey="h" title="brian (Alt + H)">brian</a>
             <div class="logo-switches">
                 <button id="theme-toggle" class="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg class="moon" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
@@ -137,17 +137,17 @@
         </div>
         <ul id="menu" class="menu">
             <li>
-                <a href="http://localhost:1313/posts/" title="Posts">
+                <a href="https://blog.brianliu.top/posts/" title="Posts">
                     <span>Posts</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/archives/" title="Archives">
+                <a href="https://blog.brianliu.top/archives/" title="Archives">
                     <span>Archives</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/search/" title="Search (Alt &#43; /)" accesskey=/>
+                <a href="https://blog.brianliu.top/search/" title="Search (Alt &#43; /)" accesskey=/>
                     <span>Search</span>
                 </a>
             </li>
@@ -184,51 +184,80 @@
     </div>
     <div class="post-meta">
 
-<span title='2026-09-08 17:48:50 +0800 CST'>2026-09-08</span>&nbsp;·&nbsp;<span>2 分钟</span>
+<span title='2026-09-08 17:48:50 +0800 CST'>2026-09-08</span>&nbsp;·&nbsp;<span>3 分钟</span>
 
 </div>
   </header> 
   <div class="post-content md-content"><h1 id="etcd-读写流程">etcd 读写流程<a hidden class="anchor" aria-hidden="true" href="#etcd-读写流程">#</a></h1>
-<p>etcd的应用非常广泛，从服务发现到分布式锁，而且随着k8s成为容器编排领域的绝对霸主，etcd也成为云原生的存储基石。</p>
+<p>etcd 用在服务发现、分布式锁，以及 Kubernetes 的集群状态存储。读写都要过同一套模块，只是读尽量不写 Raft 日志，写必须走共识：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">gRPC KV
+</span></span><span class="line"><span class="cl">  → KVServer
+</span></span><span class="line"><span class="cl">    → 读：线性读等待（可选）→ MVCC
+</span></span><span class="line"><span class="cl">    → 写：quota / 校验 → Raft propose → commit → apply → MVCC
+</span></span><span class="line"><span class="cl">  → MVCC = 内存 treeIndex + BoltDB
+</span></span></code></pre></div><p><code>treeIndex</code> 用 key 查 revision；BoltDB 用 revision 当 key 存真正的 value。中间还有一层 write buffer，刚 apply、还没刷盘的数据先从这里读。</p>
 <h2 id="读流程">读流程<a hidden class="anchor" aria-hidden="true" href="#读流程">#</a></h2>
+<p>默认是线性读。可串行化读跳过 Raft，更快，但可能读到旧数据。</p>
+<ol>
+<li>client 对某个 key 发起 Range / Get。</li>
+<li>请求进 KVServer。gRPC 按方法分到不同 handler（Range、Put、Txn…），顺带打监控。</li>
+<li>先区分读模式，<strong>再进 MVCC</strong>（原文把 treeIndex 查找放在线性读等待之前，顺序反了）：
 <ul>
-<li>client 发起一个key的读请求</li>
-<li>服务收到请求后，先进入KVserver模块，因为etcd提供了丰富的监控指标，KVserver会根据访问的服务名称的方法，将请求发往不同的处理器</li>
-<li>之后进入MVCC模块，这个模块包含两个模块：treeIndex和 boltdb</li>
-<li>先在treeIndex中根据key，找到要访问的版本号，如果没有找到直接报错返回</li>
-<li>etcd有两种读模式：串性读和线性读
-<ul>
-<li>如果是串性读，直接进行下一步</li>
-<li>如果是线性读，先从leader获取commitedIndex，如果commitedIndex &lt; version 进入下一步，如果否等到满足前面的条件再进行下一步</li>
+<li><strong>可串行化读（serializable）</strong>：不和 leader 对齐，直接读本节点当前状态。follower 上可能落后于集群。</li>
+<li><strong>线性读（linearizable，默认）</strong>：向 leader 做 ReadIndex，拿到此刻的 <code>committedIndex</code>，然后<strong>等到本节点 <code>appliedIndex &gt;= 这个 index</code></strong>。保证读到的是这条读请求开始之前已经 commit 的全部写入。这里比的是 Raft index，不是 MVCC 的 version。</li>
 </ul>
 </li>
-<li>根据版本号在buffer中查找，找到数据直接返回，没有找打再从boltdb中查找</li>
+<li>进入 MVCC。<code>treeIndex</code> 用 key 找到对应 revision（创建 revision、当前 revision、修改次数、历史 revision 列表）：
+<ul>
+<li>指定的 revision 已被 compact：返回错误。</li>
+<li>key 不存在：返回空结果，不是报错。</li>
 </ul>
+</li>
+<li>拿着 revision 先查 buffer，命中直接返回；没有再回 BoltDB。</li>
+</ol>
+<p>线性读的代价是一次和 leader 的对齐，以及可能的短暂等待。所以 watch、大量本地读有时会显式开 serializable。</p>
 <h2 id="写流程">写流程<a hidden class="anchor" aria-hidden="true" href="#写流程">#</a></h2>
+<p>写一定要进 Raft。本节点 apply 完成，client 才收到成功。</p>
+<ol>
+<li>client 发起 Put / Delete / Txn。</li>
+<li><strong>quota</strong>：看 BoltDB 是否已经摸到空间上限。超了直接返回，不再提案，避免把盘写爆。</li>
+<li>进 KVServer，提案前做几项校验：
 <ul>
-<li>client 发起一个key的写请求</li>
-<li>服务收到请求后，先进入quota模块，判断当前数据库是否还有空间，没有空间之间返回</li>
-<li>在进入KVserver模块，先进行一些校验
-<ul>
-<li>commited Index - applied Index &gt; 5000, 如果大于5000，说明之前有大量数据还在处理中，报错</li>
-<li>token 是否合法</li>
-<li>包大小是否合法</li>
+<li><code>committedIndex - appliedIndex &gt; 5000</code>：前面堆积了太多还没 apply 的日志，拒绝新提案（<code>ErrTooManyRequests</code>），避免缺口继续拉大。</li>
+<li>token / 权限是否合法。</li>
+<li>包是否超过 <code>MaxRequestBytes</code>。</li>
 </ul>
 </li>
-<li>KVserver发起提案并提交给raft模块，leader 应用本地log并写入WAL，同时把请求发送给follower，如果收到超过半数的follower的答复，进入apply流程</li>
-<li>为了幂等，etcd保存了一个constitient Index, 用来表示事务是否已经应用</li>
-<li>先将数据写入treeIndex， treeIndex保存 key 和对应的version信息（包含创建 version，当前version，修改次数和历史version列表）</li>
-<li>获取到要写入的version后，将version作为key，value包含要写入的key，value信息</li>
+<li>KVServer 把请求打成 Raft 提案：
+<ul>
+<li>leader 追加本地 log 并写 WAL。</li>
+<li>同时复制给 follower。</li>
+<li><strong>超过半数确认之后才 commit</strong>，然后进入 apply。append 和 apply 不是一步：过半之前只是写了日志，状态机还没变。</li>
 </ul>
+</li>
+<li>apply 要幂等。etcd 在 backend 里记 <code>consistentIndex</code>（已应用到状态机的 Raft index）。重启或重复 apply 时，<code>index &lt;= consistentIndex</code> 的条目直接跳过。</li>
+<li>真正改数据（同一笔 backend 事务里）：
+<ul>
+<li>分配新的 revision，以 revision 为 key 写入 BoltDB，value 是用户的 key/value 以及创建 revision、mod revision、version。</li>
+<li>更新内存 <code>treeIndex</code>：key → 这串 version 元数据。</li>
+<li>把 <code>consistentIndex</code> 写成当前这条 Raft index。</li>
+</ul>
+</li>
+</ol>
+<p>所以一次成功的写，对外可见的顺序是：多数派 commit → apply 进 MVCC → 后续线性读能看到。只在 leader 本地 WAL 里、还没过半的数据，读路径看不到。</p>
 
   </div>
 
   <footer class="post-footer">
     <ul class="post-tags">
-      <li><a href="http://localhost:1313/tags/etcd/">Etcd</a></li>
+      <li><a href="https://blog.brianliu.top/tags/etcd/">Etcd</a></li>
     </ul>
 <nav class="paginav">
-  <a class="next" href="http://localhost:1313/posts/high-performance/high-performance/">
+  <a class="prev" href="https://blog.brianliu.top/posts/web3/uniswap/">
+    <span class="title">« 上一页</span>
+    <span>Uniswap</span>
+  </a>
+  <a class="next" href="https://blog.brianliu.top/posts/high-performance/high-performance/">
     <span class="title">下一页 »</span>
     <span>高性能服务</span>
   </a>
@@ -240,7 +269,7 @@
     
 <footer class="footer">
     <div class="tn-footer-line">
-        <span>&copy; 2026 <a href="http://localhost:1313/">Brian&#39;s Blog</a></span>
+        <span>&copy; 2026 <a href="https://blog.brianliu.top/">Brian&#39;s Blog</a></span>
     <span>
         Powered by
         <a href="https://gohugo.io/?utm_source=papermod" rel="noopener" target="_blank">Hugo</a> &
